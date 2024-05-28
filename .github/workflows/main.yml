@@ -36,7 +36,7 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --noconfirm --onefile --windowed --icon "images/icon.ico" --name "NotaireCiclade" --add-data "images/icon.ico;." --add-data ".env;." --add-data "updater.exe;." --add-data "time.txt;." --distpath ./output "main.py"
+          pyinstaller --noconfirm --onefile --windowed --icon "images/icon.ico" --name "NotaireCiclade" --add-data "images/icon.ico;." --add-data ".env;." --add-data "updater.exe;." --add-data "time.txt;." --add-data "images/:images/" --distpath ./output "main.py"
 
       - name: Upload and Replace EXE in Release
         run: python release.py
