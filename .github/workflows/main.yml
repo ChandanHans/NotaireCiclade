@@ -14,12 +14,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Important for tags manipulation
 
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.11.0
           architecture: x64
@@ -31,7 +31,8 @@ jobs:
 
       - name: Create .env and Time Files
         run: |
-          echo 'CREDS_JSON=${{ secrets.CREDS_JSON }}','GPT_KEY=${{ secrets.GPT_KEY }}' > .env
+          echo 'CREDS_JSON=${{ secrets.CREDS_JSON }}' > .env
+          echo 'GPT_KEY=${{ secrets.GPT_KEY }}' >> .env
           python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'))" > time.txt
 
       - name: Build EXE
