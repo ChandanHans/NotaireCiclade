@@ -1,4 +1,5 @@
 import os
+from time import sleep
 import requests
 
 def delete_release_and_tag(headers, repo, release_id, tag):
@@ -8,6 +9,7 @@ def delete_release_and_tag(headers, repo, release_id, tag):
     response = requests.delete(delete_release_url, headers=headers)
     if response.status_code == 204:
         print(f"Release {release_id} successfully deleted.")
+        sleep(5)
     else:
         print(f"Failed to delete release: {response.json()}")
         return False
@@ -17,6 +19,7 @@ def delete_release_and_tag(headers, repo, release_id, tag):
     response = requests.delete(delete_tag_url, headers=headers)
     if response.status_code == 204:
         print(f"Tag {tag} successfully deleted.")
+        sleep(5)
     else:
         print(f"Failed to delete tag: {response.json()}")
         return False
@@ -35,10 +38,11 @@ def create_tag_and_release(headers, repo, tag, commit_sha, release_title, file_p
     response = requests.post(f"https://api.github.com/repos/{repo}/git/tags", headers=headers, json=tag_data)
     if response.status_code == 201:
         print(f"Tag {tag} successfully created.")
+        sleep(5)
     else:
         print(f"Failed to create tag: {response.json()}")
         return False
-
+    
     # Create the release
     release_data = {
         "tag_name": tag,
@@ -51,10 +55,11 @@ def create_tag_and_release(headers, repo, tag, commit_sha, release_title, file_p
     if response.status_code == 201:
         release_id = response.json()["id"]
         print(f"Release {release_id} successfully created.")
+        sleep(5)
     else:
         print(f"Failed to create release: {response.json()}")
         return False
-
+    
     # Upload the file to the release
     upload_url = f"https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={os.path.basename(file_path)}"
     with open(file_path, 'rb') as file:
@@ -62,6 +67,7 @@ def create_tag_and_release(headers, repo, tag, commit_sha, release_title, file_p
         response = requests.post(upload_url, headers=headers, data=file.read())
         if response.status_code in range(200, 300):
             print("Asset uploaded successfully")
+            sleep(5)
             return True
         else:
             print(f"Failed to upload asset: {response.json()}")
