@@ -1,0 +1,8 @@
+/.venv
+/settings.pkl
+/.env
+output.log
+__pycache__
+captcha.wav
+/output
+/k.py

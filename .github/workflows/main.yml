@@ -1,0 +1,42 @@
+name: Create EXE and Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: 'v1.0.0'
+      COMMIT_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Important for tags manipulation
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11.0
+          architecture: x64
+
+      - name: Install Dependencies
+        run: |
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Create .env and Time Files
+        run: |
+          echo 'CREDS_JSON=${{ secrets.CREDS_JSON }}','GPT_KEY=${{ secrets.GPT_KEY }}' > .env
+          python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'))" > time.txt
+
+      - name: Build EXE
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --icon "icon.ico" --name "NotaireCiclade" --add-data "icon.ico;." --add-data ".env;." --add-data "updater.exe;." --add-data "time.txt;." --distpath ./output "main.py"
+
+      - name: Upload and Replace EXE in Release
+        run: python release.py
