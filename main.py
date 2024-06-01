@@ -342,9 +342,9 @@ def new_search(
                 pass
 
         # Final submission
-        click_element(driver, '//*[@id="btnSoumission"]')
-        click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
-        click_element(driver, '//i[@class="fa fa-download"]/parent::a')
+        # click_element(driver, '//*[@id="btnSoumission"]')
+        # click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
+        # click_element(driver, '//i[@class="fa fa-download"]/parent::a')
 
         sleep(1)
         return 1
