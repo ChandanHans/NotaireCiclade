@@ -76,12 +76,12 @@ class NotaryAccount:
             print(f"An error occurred: {e}")
             return []
 
-    def get_file_by_name(self, folder_id: str, name: str) -> Dict[str, str]:
+    def get_file_by_name(self, folder_id: str, name_list: tuple[str]) -> Dict[str, str]:
         try:
             file_list: dict[str, str] = self.get_files_in_folder(folder_id)
             if file_list:
                 for file in file_list:
-                    if unidecode(name.lower()) in unidecode(file["name"].lower()):
+                    if any(unidecode(name.lower()) in unidecode(file["name"].lower()) for name in name_list):
                         return file
         except Exception as e:
             print(f"An error occurred: {e}")

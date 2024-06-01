@@ -19,9 +19,6 @@ from unidecode import unidecode
 from cryptography.fernet import Fernet
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from src.utils import *
 from src.constants import *
@@ -85,8 +82,10 @@ def start_process():
             )
             full_name = remove_extra_spaces(folder_name).split("(")[0].strip()
             fname, lname = split_name(full_name)
-            death_proof = notary.get_file_by_name(folder_id, "acte de dece")
-            mandat = notary.get_file_by_name(folder_id, "mandat")
+            death_proof = notary.get_file_by_name(
+                folder_id, ("acte de dece", "actes de dece")
+            )
+            mandat = notary.get_file_by_name(folder_id, ("mandat",))
             dob, dod = get_dob_dod(all_clients_data, full_name)
             print(full_name, dob, dod)
             if all(
@@ -151,6 +150,7 @@ def start_browser() -> webdriver.Chrome:
     )
     options.add_argument("--app=https://ciclade.caissedesdepots.fr/monespace")
     driver = webdriver.Chrome(options=options)
+    driver.implicitly_wait(3)
     try:
         click_element(driver, '//*[@id="didomi-notice-agree-button"]')
         sleep(3)
@@ -171,9 +171,7 @@ def click_element(driver: webdriver.Chrome, xpath):
     """Utility function to click on an element identified by xpath"""
     for _ in range(5):
         try:
-            element = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.XPATH, xpath))
-            )
+            element = driver.find_element(By.XPATH, xpath)
             element.click()
             return True
         except Exception:
@@ -185,9 +183,7 @@ def send_keys_to_element(driver: webdriver.Chrome, xpath, text):
     """Utility function to send text to an element identified by xpath"""
     for _ in range(5):
         try:
-            element = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.XPATH, xpath))
-            )
+            element = driver.find_element(By.XPATH, xpath)
             element.send_keys(text)
             return True
         except Exception:
@@ -199,9 +195,7 @@ def upload_to_element(driver: webdriver.Chrome, xpath, path):
     """Utility function to send text to an element identified by xpath"""
     for _ in range(5):
         try:
-            element = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.XPATH, xpath))
-            )
+            element = driver.find_element(By.XPATH, xpath)
             element.send_keys(path)
             return True
         except Exception:
@@ -209,14 +203,12 @@ def upload_to_element(driver: webdriver.Chrome, xpath, path):
     return False
 
 
-def wait_for_element(driver, xpath, timeout=5):
+def wait_for_element(driver: webdriver.Chrome, xpath):
     """Wait for an element to be visible."""
     try:
-        WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((By.XPATH, xpath))
-        )
+        driver.find_element(By.XPATH, xpath)
         return True
-    except TimeoutException:
+    except Exception:
         return False
 
 
@@ -243,20 +235,26 @@ def new_search(
         driver.get("https://ciclade.caissedesdepots.fr/monespace/#/service/recherche")
         driver.refresh()
 
-        click_element(driver, '//input[@id="f-s-p-death-yes"]')
-        click_element(driver, '//*[@id="f-s-p-civilite-monsieur"]')
-        send_keys_to_element(driver, '//input[@id="f-s-p-death-day"]', dob)
-        send_keys_to_element(driver, '//input[@id="f-s-p-birth-day"]', dod)
-        send_keys_to_element(driver, '//input[@id="f-s-p-surname1"]', fname)
-        send_keys_to_element(driver, '//input[@id="f-s-p-name1"]', lname)
-        click_element(driver, '//*[@id="f-s-p-nationality"]/option[@value="FRA"]')
-        click_element(driver, '//*[@id="f-s-p-connu-no"]')
+        click_element(driver, '//*[@id="recherche.estDecede-oui"]')  # y/n
+        send_keys_to_element(driver, '//*[@id="dateDeces"]', dod)  # dod
+        click_element(driver, '//*[@id="recherche.civiliteListe-m"]')  # m/f
+        send_keys_to_element(driver, '//*[@id="dateNaissance"]', dob)  # dob
+        send_keys_to_element(driver, '//*[@id="prenom"]', fname)  # fname
+        send_keys_to_element(driver, '//*[@id="nom"]', lname)  # lname
+        click_element(
+            driver, '//*[@id="codeNationalite"]/option[contains(@value, "FRA")]'
+        )  # nationality
+        toggle_button = driver.find_element(
+            By.XPATH, '//*[@id="ngb-accordion-item-1-toggle"]'
+        )
+        button_status = toggle_button.get_attribute("aria-expanded")
+        if button_status == "false":
+            click_element(driver, '//*[@id="ngb-accordion-item-1-toggle"]')
+        click_element(driver, '//*[@id="recherche.produit.dispose-non"]')
 
         try:
-            captcha_image_url = (
-                WebDriverWait(driver, 5)
-                .until(EC.presence_of_element_located((By.ID, "captchaImg")))
-                .get_attribute("src")
+            captcha_image_url = driver.find_element(By.ID, "captchaImg").get_attribute(
+                "src"
             )
             captcha_sound_url = captcha_image_url.replace("image", "sound")
             captcha_result = get_captcha_result(captcha_sound_url)
@@ -264,8 +262,10 @@ def new_search(
             return new_search(driver, fname, lname, dob, dod, temp_file1, temp_file2)
         send_keys_to_element(driver, '//*[@id="CAPTCHA"]', captcha_result)
 
-        click_element(driver, '//*[@type="submit"]')
-        click_element(driver, '//*[@ng-click="vm.rechercher()"]')
+        click_element(driver, '//*[@id="boutonValider"]')  # submit
+
+        click_element(driver, '//*[@data-target="#confirmationModal"]')
+        click_element(driver, '//*[@id="boutonLancerModale"]')
 
         sleep(2)
 
@@ -419,6 +419,7 @@ def close_driver():
         driver.quit()
     except Exception:
         pass
+
 
 root = tk.Tk()
 root.title("Notaire Ciclade")
