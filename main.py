@@ -31,6 +31,9 @@ cipher_suite = Fernet(SETTING_KEY)
 
 driver = None
 
+if getattr(sys, "frozen", False):
+    import pyi_splash   # type: ignore
+    pyi_splash.close()
 
 def load_settings():
     if os.path.exists(SAVE_FILE):
@@ -342,9 +345,9 @@ def new_search(
                 pass
 
         # Final submission
-        # click_element(driver, '//*[@id="btnSoumission"]')
-        # click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
-        # click_element(driver, '//i[@class="fa fa-download"]/parent::a')
+        click_element(driver, '//*[@id="btnSoumission"]')
+        click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
+        click_element(driver, '//i[@class="fa fa-download"]/parent::a')
 
         sleep(1)
         return 1
