@@ -65,16 +65,35 @@ class NotaryAccount:
                 .list(
                     q=f"'{folder_id}' in parents and trashed=false",
                     spaces="drive",
-                    fields="files(id, name, size)",
+                    fields="files(id, name, size, mimeType)",
                 )
                 .execute()
             )
 
             file_list = response.get("files", [])
+            
+            # Define a mapping of MIME types to file extensions
+            mime_to_extension = {
+                'application/pdf': '.pdf',
+                'image/jpeg': '.jpg',
+                'image/png': '.png',
+            }
+            
+            for file in file_list:
+                # Check if the file name has an extension
+                if '.' not in file['name']:
+                    # Get the MIME type and find the corresponding extension
+                    mime_type = file.get('mimeType')
+                    extension = mime_to_extension.get(mime_type, '')
+                    if extension:
+                        # Update the file name with the proper extension
+                        file['name'] += extension
+            
             return file_list
         except Exception as e:
             print(f"An error occurred: {e}")
             return []
+
 
     def get_file_by_name(self, folder_id: str, name_list: tuple[str]) -> Dict[str, str]:
         try:
