@@ -74,6 +74,7 @@ def start_process():
         all_clients_data = get_clients_data(notary.creds)
         status_label.config(text="Running...", fg="#4CAF50")
         driver = start_browser()
+        cookie = get_cookie(driver)
         all_folders = notary.get_target_folders()
         total_folder = len(all_folders)
         for index, folder in enumerate(all_folders):
@@ -104,7 +105,7 @@ def start_process():
                 file1_path = notary.download_file(death_proof)
                 file2_path = notary.download_file(mandat)
                 if file1_path and file2_path:
-                    successful = new_search(
+                    result = new_search(
                         driver, fname, lname, dob, dod, file1_path, file2_path
                     )
                     try:
@@ -112,10 +113,16 @@ def start_process():
                         os.remove(file2_path)
                     except:
                         pass
-                    if successful == 1:
+                    if result[0] == 1:
                         notary.move_folder(folder_id, notary.folder_id_2)
+                        try:
+                            recap_file = download_recap_file(result[1],cookie)
+                            notary.upload_file(recap_file, folder_id)
+                            os.remove(recap_file)
+                        except:
+                            pass
                         print("SUCCESSFUL")
-                    elif successful == -1:
+                    elif result[0] == -1:
                         notary.move_folder(folder_id, notary.neg_folder_id)
                         print("NEGATIVE")
                     else:
@@ -141,6 +148,7 @@ def start_browser() -> webdriver.Chrome:
     global driver
     options = Options()
     options.add_argument("--no-sandbox")
+    options.add_argument("--start-maximized")
     options.add_argument("--disable-popup-blocking")
     options.add_experimental_option(
         "prefs",
@@ -237,7 +245,7 @@ def new_search(
     try:
         driver.get("https://ciclade.caissedesdepots.fr/monespace/#/service/recherche")
         driver.refresh()
-
+       
         click_element(driver, '//*[@id="recherche.estDecede-oui"]')  # y/n
         send_keys_to_element(driver, '//*[@id="dateDeces"]', dod)  # dod
         click_element(driver, '//*[@id="recherche.civiliteListe-m"]')  # m/f
@@ -281,7 +289,7 @@ def new_search(
                 )
 
         if not click_element(driver, '//*[@id="FinalisationButton"]'):
-            return -1
+            return (-1, None)
 
         # Step 1
         for _ in range(5):
@@ -348,12 +356,42 @@ def new_search(
         click_element(driver, '//*[@id="btnSoumission"]')
         click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
         click_element(driver, '//i[@class="fa fa-download"]/parent::a')
+        download_url = driver.find_element(By.XPATH,'//i[@class="fa fa-download"]/parent::a').get_attribute("href")
 
         sleep(1)
-        return 1
+        return (1, download_url)
     except Exception as e:
         print(f"An error occurred: {e}")
-        return 0
+        return (0, None)
+
+def get_cookie(driver: webdriver.Chrome):
+        driver.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/account")
+        cookies = driver.get_cookies()
+        jsessionid_cookie = None
+        for cookie in cookies:
+            if cookie['name'] == 'JSESSIONID':
+                jsessionid_cookie = cookie['value']
+                break
+        if jsessionid_cookie:
+            return f"JSESSIONID={jsessionid_cookie}"
+
+def download_recap_file(download_url, cookie):
+    headers = {
+        "Cookie": cookie,
+    }
+    response = requests.get(download_url, headers=headers)
+    content_disposition = response.headers.get('Content-Disposition')
+    file_name = None
+    if content_disposition:
+        parts = content_disposition.split(';')
+        for part in parts:
+            if 'filename=' in part:
+                file_name = part.split('=')[1].strip('"')
+    if file_name:
+        with open(file_name, "wb") as file:
+            file.write(response.content)
+        path = os.path.join(os.getcwd(),file_name)
+        return path
 
 
 def split_name(full_name: str):

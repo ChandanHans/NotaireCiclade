@@ -5,7 +5,7 @@ import gspread
 from unidecode import unidecode
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseDownload,MediaFileUpload
 
 from .constants import *
 from .utils import *
@@ -124,6 +124,22 @@ class NotaryAccount:
 
         return path
 
+    def upload_file(self, file_path, folder_id):
+        file_metadata = {
+            'name': os.path.basename(file_path),
+            'parents': [folder_id]
+        }
+
+        # Media file upload
+        media = MediaFileUpload(file_path, resumable=True)
+
+        # Create the file in the specified folder
+        self.drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+    
     def move_folder(self, folder_id, move_to):
         try:
             # Use the update method of the Drive service to move the folder
