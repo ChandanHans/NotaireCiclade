@@ -3,7 +3,6 @@
 # check_for_updates()
 
 import os
-import re
 import sys
 import pickle
 import tkinter as tk
@@ -19,6 +18,8 @@ from unidecode import unidecode
 from cryptography.fernet import Fernet
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from src.utils import *
 from src.constants import *
@@ -32,8 +33,10 @@ cipher_suite = Fernet(SETTING_KEY)
 driver = None
 
 if getattr(sys, "frozen", False):
-    import pyi_splash   # type: ignore
+    import pyi_splash  # type: ignore
+
     pyi_splash.close()
+
 
 def load_settings():
     if os.path.exists(SAVE_FILE):
@@ -73,61 +76,62 @@ def start_process():
         notary = NotaryAccount(email)
         all_clients_data = get_clients_data(notary.creds)
         status_label.config(text="Running...", fg="#4CAF50")
-        driver = start_browser()
-        cookie = get_cookie(driver)
         all_folders = notary.get_target_folders()
-        total_folder = len(all_folders)
-        for index, folder in enumerate(all_folders):
-            print("----------------------------------------------")
-            folder_id: str = folder["id"]
-            folder_name: str = folder["name"]
-            status_label.config(
-                text=f"{index}/{total_folder}\n\n{folder_name}", fg="#4CAF50"
-            )
-            full_name = remove_extra_spaces(folder_name).split("(")[0].strip()
-            fname, lname = split_name(full_name)
-            death_proof = notary.get_file_by_name(
-                folder_id, ("acte de dece", "actes de dece")
-            )
-            mandat = notary.get_file_by_name(folder_id, ("mandat",))
-            dob, dod = get_dob_dod(all_clients_data, full_name)
-            print(full_name, dob, dod)
-            if all(
-                [
-                    fname,
-                    lname,
-                    is_good_size(death_proof),
-                    is_good_size(mandat),
-                    is_valid_date(dob),
-                    is_valid_date(dod),
-                ]
-            ):
-                file1_path = notary.download_file(death_proof)
-                file2_path = notary.download_file(mandat)
-                if file1_path and file2_path:
-                    result = new_search(
-                        driver, fname, lname, dob, dod, file1_path, file2_path
-                    )
-                    try:
-                        os.remove(file1_path)
-                        os.remove(file2_path)
-                    except:
-                        pass
-                    if result[0] == 1:
-                        notary.move_folder(folder_id, notary.folder_id_2)
+        if all_folders:
+            total_folder = len(all_folders)
+            driver = start_browser()
+            cookie = get_cookie(driver)
+            for index, folder in enumerate(all_folders):
+                print("----------------------------------------------")
+                folder_id: str = folder["id"]
+                folder_name: str = folder["name"]
+                status_label.config(
+                    text=f"{index}/{total_folder}\n\n{folder_name}", fg="#4CAF50"
+                )
+                full_name = remove_extra_spaces(folder_name).split("(")[0].strip()
+                fname, lname = split_name(full_name)
+                death_proof = notary.get_file_by_name(
+                    folder_id, ("acte de dece", "actes de dece")
+                )
+                mandat = notary.get_file_by_name(folder_id, ("mandat",))
+                dob, dod = get_dob_dod(all_clients_data, full_name)
+                print(full_name, dob, dod)
+                if all(
+                    [
+                        fname,
+                        lname,
+                        is_good_size(death_proof),
+                        is_good_size(mandat),
+                        is_valid_date(dob),
+                        is_valid_date(dod),
+                    ]
+                ):
+                    file1_path = notary.download_file(death_proof)
+                    file2_path = notary.download_file(mandat)
+                    if file1_path and file2_path:
+                        result, download_link = new_search(
+                            driver, fname, lname, dob, dod, file1_path, file2_path
+                        )
                         try:
-                            recap_file = download_recap_file(result[1],cookie)
-                            notary.upload_file(recap_file, folder_id)
-                            os.remove(recap_file)
+                            os.remove(file1_path)
+                            os.remove(file2_path)
                         except:
                             pass
-                        print("SUCCESSFUL")
-                    elif result[0] == -1:
-                        notary.move_folder(folder_id, notary.neg_folder_id)
-                        print("NEGATIVE")
-                    else:
-                        print("ERROR")
-            print("----------------------------------------------")
+                        if result == 1:
+                            notary.move_folder(folder_id, notary.folder_id_2)
+                            try:
+                                recap_file = download_recap_file(download_link, cookie)
+                                notary.upload_file(recap_file, folder_id)
+                                os.remove(recap_file)
+                            except:
+                                pass
+                            print("SUCCESSFUL")
+                        elif result == -1:
+                            notary.move_folder(folder_id, notary.neg_folder_id)
+                            print("NEGATIVE")
+                        else:
+                            print("ERROR")
+                print("----------------------------------------------")
 
         status_label.config(text="Task Completed", fg="#4CAF50")
         close_driver()
@@ -161,7 +165,7 @@ def start_browser() -> webdriver.Chrome:
     )
     options.add_argument("--app=https://ciclade.caissedesdepots.fr/monespace")
     driver = webdriver.Chrome(options=options)
-    driver.implicitly_wait(3)
+    driver.implicitly_wait(4)
     try:
         click_element(driver, '//*[@id="didomi-notice-agree-button"]')
         sleep(3)
@@ -195,6 +199,7 @@ def send_keys_to_element(driver: webdriver.Chrome, xpath, text):
     for _ in range(5):
         try:
             element = driver.find_element(By.XPATH, xpath)
+            element.clear()
             element.send_keys(text)
             return True
         except Exception:
@@ -214,10 +219,10 @@ def upload_to_element(driver: webdriver.Chrome, xpath, path):
     return False
 
 
-def wait_for_element(driver: webdriver.Chrome, xpath):
+def wait_for_element(driver: webdriver.Chrome, xpath, time = 3):
     """Wait for an element to be visible."""
     try:
-        driver.find_element(By.XPATH, xpath)
+        WebDriverWait(driver, time).until(EC.presence_of_element_located((By.XPATH, xpath)))
         return True
     except Exception:
         return False
@@ -245,7 +250,7 @@ def new_search(
     try:
         driver.get("https://ciclade.caissedesdepots.fr/monespace/#/service/recherche")
         driver.refresh()
-       
+
         click_element(driver, '//*[@id="recherche.estDecede-oui"]')  # y/n
         send_keys_to_element(driver, '//*[@id="dateDeces"]', dod)  # dod
         click_element(driver, '//*[@id="recherche.civiliteListe-m"]')  # m/f
@@ -292,105 +297,93 @@ def new_search(
             return (-1, None)
 
         # Step 1
-        for _ in range(5):
-            try:
-                sleep(2)
-                if not click_element(
-                    driver, '//*[@id="positionDemandeur"]/option[@label="Notaire"]'
-                ):
-                    continue
-                if not click_element(
-                    driver, '//*[@id="f-s-p-paysBanque"]/option[@value="FR"]'
-                ):
-                    continue
-                if not send_keys_to_element(
-                    driver, '//*[@id="f-s-p-titulaire"]', owner_var.get()
-                ):
-                    continue
-                if not send_keys_to_element(
-                    driver, '//*[@id="f-s-p-iban"]', iban_var.get()
-                ):
-                    continue
-                if not send_keys_to_element(
-                    driver, '//*[@id="f-s-p-bic"]', bic_var.get()
-                ):
-                    continue
-                if not upload_to_element(driver, '//*[@id="document"]', pdf_file_path):
-                    continue
-                if not click_element(driver, '//*[@ng-click="vm.poursuivre()"]'):
-                    continue
-                if wait_for_element(driver, '//*[@id="docAdditionnelNon"]'):
-                    break
-            except Exception as e:
-                if _ == 4:
-                    raise
-                print("Error in Step 1")
-                print(e)
-                sleep(5)
-                pass
+        for i in range(5):
+            sleep(2)
+            if (wait_for_element(driver,'//*[@id="positionDemandeur"]/option[@label="Notaire"]')):
+                click_element(driver, '//*[@id="positionDemandeur"]/option[@label="Notaire"]')
+                click_element(driver, '//*[@id="f-s-p-paysBanque"]/option[@value="FR"]')
+                send_keys_to_element(driver, '//*[@id="f-s-p-titulaire"]', owner_var.get())
+                send_keys_to_element(driver, '//*[@id="f-s-p-iban"]', iban_var.get())
+                send_keys_to_element(driver, '//*[@id="f-s-p-bic"]', bic_var.get())
+                if (wait_for_element(driver,'//*[@id="document"]')):
+                    upload_to_element(driver, '//*[@id="document"]', pdf_file_path)
+                click_element(driver, '//*[@ng-click="vm.poursuivre()"]')
+                sleep(3)
+            if (wait_for_element(driver, '//*[@id="docAdditionnelNon"]', 20)):
+                break
+            if i == 4:
+                raise
+            print("Error in Step 1")
+            sleep(2)
+            driver.refresh()
 
         # Step 2
-        for _ in range(5):
-            try:
-                sleep(2)
-                if not click_element(driver, '//*[@id="docAdditionnelNon"]'):
-                    continue
-                if not upload_to_element(driver, '//*[@id="document-0"]', temp_file1):
-                    continue
-                if not upload_to_element(driver, '//*[@id="document-1"]', temp_file2):
-                    continue
-                if not click_element(driver, '//*[@ng-click="vm.poursuivre()"]'):
-                    continue
-                if wait_for_element(driver, '//*[@id="btnSoumission"]'):
-                    break
-            except Exception as e:
-                if _ == 4:
-                    raise
-                print("Error in Step 2")
-                print(e)
-                sleep(5)
-                driver.refresh()
-                pass
-
+        for i in range(5):
+            sleep(2)
+            if (wait_for_element(driver, '//*[@id="docAdditionnelNon"]')):
+                click_element(driver, '//*[@id="docAdditionnelNon"]')
+                if (wait_for_element(driver, '//*[@id="document-0"]',1)):
+                    upload_to_element(driver, '//*[@id="document-0"]', temp_file1)
+                if (wait_for_element(driver, '//*[@id="document-1"]',1)):
+                    upload_to_element(driver, '//*[@id="document-1"]', temp_file2)
+                click_element(driver, '//*[@ng-click="vm.poursuivre()"]')
+                sleep(3)
+            if(wait_for_element(driver, '//*[@id="btnSoumission"]', 10)):
+                break
+            if i == 4:
+                raise
+            print("Error in Step 2")
+            sleep(2)
+            driver.refresh()
+            pass
+        
+        
         # Final submission
-        click_element(driver, '//*[@id="btnSoumission"]')
-        click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
-        click_element(driver, '//i[@class="fa fa-download"]/parent::a')
-        download_url = driver.find_element(By.XPATH,'//i[@class="fa fa-download"]/parent::a').get_attribute("href")
-
+        # click_element(driver, '//*[@id="btnSoumission"]')
+        # click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
+        # click_element(driver, '//i[@class="fa fa-download"]/parent::a')
+        try:
+            download_url = driver.find_element(
+                By.XPATH, '//i[@class="fa fa-download"]/parent::a'
+            ).get_attribute("href")
+        except:
+            download_url = None
+            
         sleep(1)
         return (1, download_url)
     except Exception as e:
         print(f"An error occurred: {e}")
         return (0, None)
 
+
 def get_cookie(driver: webdriver.Chrome):
-        driver.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/account")
-        cookies = driver.get_cookies()
-        jsessionid_cookie = None
-        for cookie in cookies:
-            if cookie['name'] == 'JSESSIONID':
-                jsessionid_cookie = cookie['value']
-                break
-        if jsessionid_cookie:
-            return f"JSESSIONID={jsessionid_cookie}"
+    driver.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/account")
+    cookies = driver.get_cookies()
+    jsessionid_cookie = None
+    for cookie in cookies:
+        if cookie["name"] == "JSESSIONID":
+            jsessionid_cookie = cookie["value"]
+            break
+    if jsessionid_cookie:
+        return f"JSESSIONID={jsessionid_cookie}"
+
 
 def download_recap_file(download_url, cookie):
     headers = {
         "Cookie": cookie,
     }
     response = requests.get(download_url, headers=headers)
-    content_disposition = response.headers.get('Content-Disposition')
+    content_disposition = response.headers.get("Content-Disposition")
     file_name = None
     if content_disposition:
-        parts = content_disposition.split(';')
+        parts = content_disposition.split(";")
         for part in parts:
-            if 'filename=' in part:
-                file_name = part.split('=')[1].strip('"')
+            if "filename=" in part:
+                file_name = part.split("=")[1].strip('"')
     if file_name:
         with open(file_name, "wb") as file:
             file.write(response.content)
-        path = os.path.join(os.getcwd(),file_name)
+        path = os.path.join(os.getcwd(), file_name)
         return path
 
 

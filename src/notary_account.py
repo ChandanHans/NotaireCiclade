@@ -36,7 +36,7 @@ class NotaryAccount:
         data = notary_worksheet.get_all_values()
         for row in data:
             if row and row[1].lower() == self.email.lower():
-                return row[2], row[3], row[4]
+                return row[3], row[4], row[6]
         raise LookupError("User not found in database")
 
     def get_target_folders(self):
