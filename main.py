@@ -339,9 +339,9 @@ def new_search(
         
         
         # Final submission
-        # click_element(driver, '//*[@id="btnSoumission"]')
-        # click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
-        # click_element(driver, '//i[@class="fa fa-download"]/parent::a')
+        click_element(driver, '//*[@id="btnSoumission"]')
+        click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
+        click_element(driver, '//i[@class="fa fa-download"]/parent::a')
         try:
             download_url = driver.find_element(
                 By.XPATH, '//i[@class="fa fa-download"]/parent::a'
