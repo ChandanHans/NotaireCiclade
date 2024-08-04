@@ -13,10 +13,10 @@ from .utils import *
 
 class NotaryAccount:
     def __init__(self, email) -> None:
-        self.email = email
-        self.creds = self.get_credentials()
+        self.email : str = email
+        self.creds  : service_account.Credentials = self.get_credentials()
         self.drive_service = self.get_drive_service()
-        self.folder_id_1, self.folder_id_2, self.neg_folder_id = self.get_folder_id()
+        self.folder_id_22, self.folder_id_23, self.folder_id_25 = self.get_folder_id()
 
     def get_credentials(self):
         scopes = ["https://www.googleapis.com/auth/drive"]
@@ -33,14 +33,24 @@ class NotaryAccount:
         gc = gspread.authorize(self.creds)
         notary_sheet = gc.open_by_key(NOTARY_SHEET_ID)
         notary_worksheet = notary_sheet.get_worksheet(0)
-        data = notary_worksheet.get_all_values()
-        for row in data:
-            if row and row[1].lower() == self.email.lower():
-                return row[3], row[4], row[6]
+        data : list[str]= notary_worksheet.get_all_values()
+        
+        header_row : list[str] = data[0]
+        header_indices = {header.lower(): index for index, header in enumerate(header_row)}
+        
+        email_column = header_indices.get('email')
+        folder_id_1_column = header_indices.get('2.2')
+        folder_id_2_column = header_indices.get('2.3')
+        folder_id_3_column = header_indices.get('2.5')
+        
+        for row in data[1:]:  # Skip the header row
+            if row and row[email_column].lower() == self.email.lower():
+                return row[folder_id_1_column], row[folder_id_2_column], row[folder_id_3_column]
+        
         raise LookupError("User not found in database")
 
     def get_target_folders(self):
-        query = f"'{self.folder_id_1}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        query = f"'{self.folder_id_22}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
         all_folders = []
         try:
             request = self.drive_service.files().list(
@@ -146,7 +156,7 @@ class NotaryAccount:
             self.drive_service.files().update(
                 fileId=folder_id,
                 addParents=move_to,
-                removeParents=self.folder_id_1,
+                removeParents=self.folder_id_22,
                 fields="id, parents",
             ).execute()
         except Exception as e:

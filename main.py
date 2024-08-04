@@ -118,7 +118,7 @@ def start_process():
                         except:
                             pass
                         if result == 1:
-                            notary.move_folder(folder_id, notary.folder_id_2)
+                            notary.move_folder(folder_id, notary.folder_id_23)
                             try:
                                 recap_file = download_recap_file(download_link, cookie)
                                 notary.upload_file(recap_file, folder_id)
@@ -127,7 +127,7 @@ def start_process():
                                 pass
                             print("SUCCESSFUL")
                         elif result == -1:
-                            notary.move_folder(folder_id, notary.neg_folder_id)
+                            notary.move_folder(folder_id, notary.folder_id_25)
                             print("NEGATIVE")
                         else:
                             print("ERROR")
