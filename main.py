@@ -80,7 +80,6 @@ def start_process():
         if all_folders:
             total_folder = len(all_folders)
             driver = start_browser()
-            cookie = get_cookie(driver)
             for index, folder in enumerate(all_folders):
                 print("----------------------------------------------")
                 folder_id: str = folder["id"]
@@ -109,7 +108,7 @@ def start_process():
                     file1_path = notary.download_file(death_proof)
                     file2_path = notary.download_file(mandat)
                     if file1_path and file2_path:
-                        result, download_link = new_search(
+                        result = new_search(
                             driver, fname, lname, dob, dod, file1_path, file2_path
                         )
                         try:
@@ -119,12 +118,6 @@ def start_process():
                             pass
                         if result == 1:
                             notary.move_folder(folder_id, notary.folder_id_23)
-                            try:
-                                recap_file = download_recap_file(download_link, cookie)
-                                notary.upload_file(recap_file, folder_id)
-                                os.remove(recap_file)
-                            except:
-                                pass
                             print("SUCCESSFUL")
                         elif result == -1:
                             notary.move_folder(folder_id, notary.folder_id_25)
@@ -165,10 +158,10 @@ def start_browser() -> webdriver.Chrome:
     )
     options.add_argument("--app=https://ciclade.caissedesdepots.fr/monespace")
     driver = webdriver.Chrome(options=options)
-    driver.implicitly_wait(4)
+    driver.implicitly_wait(3)
     try:
-        click_element(driver, '//*[@id="didomi-notice-agree-button"]')
-        sleep(3)
+        click_element(driver, '//*[@id="didomi-notice-agree-button"]', 2)
+        sleep(1)
     except Exception:
         pass
     login(driver)
@@ -182,11 +175,13 @@ def login(driver: webdriver.Chrome):
     wait_for_element(driver, '//*[@class="ttl-is-h1 ng-binding"]')
 
 
-def click_element(driver: webdriver.Chrome, xpath):
+def click_element(driver: webdriver.Chrome, xpath, max_try = 5):
     """Utility function to click on an element identified by xpath"""
-    for _ in range(5):
+    for _ in range(max_try):
         try:
             element = driver.find_element(By.XPATH, xpath)
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+            sleep(1)
             element.click()
             return True
         except Exception:
@@ -294,7 +289,7 @@ def new_search(
                 )
 
         if not click_element(driver, '//*[@id="FinalisationButton"]'):
-            return (-1, None)
+            return -1
 
         # Step 1
         for i in range(5):
@@ -342,49 +337,12 @@ def new_search(
         click_element(driver, '//*[@id="btnSoumission"]')
         click_element(driver, '//*[@ng-click="vm.soumettreDemande()"]')
         click_element(driver, '//i[@class="fa fa-download"]/parent::a')
-        try:
-            download_url = driver.find_element(
-                By.XPATH, '//i[@class="fa fa-download"]/parent::a'
-            ).get_attribute("href")
-        except:
-            download_url = None
             
         sleep(1)
-        return (1, download_url)
+        return 1
     except Exception as e:
         print(f"An error occurred: {e}")
-        return (0, None)
-
-
-def get_cookie(driver: webdriver.Chrome):
-    driver.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/account")
-    cookies = driver.get_cookies()
-    jsessionid_cookie = None
-    for cookie in cookies:
-        if cookie["name"] == "JSESSIONID":
-            jsessionid_cookie = cookie["value"]
-            break
-    if jsessionid_cookie:
-        return f"JSESSIONID={jsessionid_cookie}"
-
-
-def download_recap_file(download_url, cookie):
-    headers = {
-        "Cookie": cookie,
-    }
-    response = requests.get(download_url, headers=headers)
-    content_disposition = response.headers.get("Content-Disposition")
-    file_name = None
-    if content_disposition:
-        parts = content_disposition.split(";")
-        for part in parts:
-            if "filename=" in part:
-                file_name = part.split("=")[1].strip('"')
-    if file_name:
-        with open(file_name, "wb") as file:
-            file.write(response.content)
-        path = os.path.join(os.getcwd(), file_name)
-        return path
+        return 0
 
 
 def split_name(full_name: str):
