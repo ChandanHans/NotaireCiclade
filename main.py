@@ -1,7 +1,3 @@
-# from src.vcs import check_for_updates
-
-# check_for_updates()
-
 import os
 import sys
 import pickle

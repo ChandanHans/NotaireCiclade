@@ -1,0 +1,38 @@
+# UTF-8
+#
+# For more details about fixed file info 'StringFileInfo'
+# see https://docs.microsoft.com/en-us/windows/win32/menurc/stringfileinfo-block
+
+VSVersionInfo(
+    ffi=FixedFileInfo(
+        filevers=(1, 0, 0, 0),
+        prodvers=(1, 0, 0, 0),
+        mask=0x3f,
+        flags=0x0,
+        OS=0x4,
+        fileType=0x1,
+        subtype=0x0,
+        date=(0, 0)
+    ),
+    kids=[
+        StringFileInfo(
+            [
+                StringTable(
+                    '040904b0',
+                    [
+                        StringStruct('CompanyName', 'Klero'),
+                        StringStruct('FileDescription', 'Notaire-Ciclade Automation Tool'),
+                        StringStruct('FileVersion', '1.0.0.0'),
+                        StringStruct('InternalName', 'Notaire-Ciclade'),
+                        StringStruct('LegalCopyright', '© Klero 2024'),
+                        StringStruct('OriginalFilename', 'NotaireCiclade.exe'),
+                        StringStruct('ProductName', 'Notaire-Ciclade'),
+                        StringStruct('ProductVersion', '1.0.0.0'),
+                        StringStruct('DeveloperName', 'Chandan Hans')
+                    ]
+                )
+            ]
+        ),
+        VarFileInfo([VarStruct('Translation', [1033, 1200])])
+    ]
+)
