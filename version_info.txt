@@ -28,7 +28,8 @@ VSVersionInfo(
                         StringStruct('OriginalFilename', 'NotaireCiclade.exe'),
                         StringStruct('ProductName', 'Notaire-Ciclade'),
                         StringStruct('ProductVersion', '1.0.0.0'),
-                        StringStruct('DeveloperName', 'Chandan Hans')
+                        StringStruct('DeveloperName', 'Chandan Hans'),
+                        StringStruct('Publisher', 'Klero')
                     ]
                 )
             ]
