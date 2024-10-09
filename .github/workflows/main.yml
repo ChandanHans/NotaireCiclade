@@ -32,6 +32,6 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --noconfirm --onefile --icon "images/icon.ico" --name "NotaireCiclade" --add-data "images/icon.ico;." --add-data "encrypted_env.bin;." --add-data "images/:images/" --distpath ./output "main.py"
+          pyinstaller --noconfirm --onefile --icon "images/icon.ico" --name "NotaireCiclade" --add-data "images/icon.ico;." --add-data "images/:images/" --distpath ./output "main.py"
       - name: Upload and Replace EXE in Release
         run: python release.py

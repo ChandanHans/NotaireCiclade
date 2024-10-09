@@ -15,36 +15,10 @@ from tkinter import Tk, filedialog
 import gspread
 import requests
 from unidecode import unidecode
-
-from .constants import *
+from prompt_toolkit import prompt
 from cryptography.fernet import Fernet
 
-import msvcrt
-import sys
-
-def masked_input(prompt="Password: "):
-    password = ''
-    sys.stdout.write(prompt)
-    sys.stdout.flush()
-
-    while True:
-        char = msvcrt.getch()
-
-        if char in (b'\r', b'\n'):  # Enter key is pressed
-            break
-        elif char == b'\x08':  # Backspace key is pressed
-            if len(password) > 0:
-                password = password[:-1]
-                sys.stdout.write('\b \b')  # Erase the last '*'
-                sys.stdout.flush()
-        else:
-            password += char.decode('utf-8')
-            sys.stdout.write('*')
-            sys.stdout.flush()
-
-    sys.stdout.write('\n')
-    return password
-
+from .constants import *
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -128,7 +102,7 @@ def get_valid_file_path():
 # Function to get user input
 def get_user_input():
     email_var = input("Email: ")
-    password_var = masked_input("Password: ")
+    password_var = prompt("Password: ", is_password=True)
     owner_var = input("Account owner: ")
     iban_var = input("IBAN: ")
     bic_var = input("BIC: ")
@@ -165,7 +139,9 @@ def save_derived_key(derived_key: bytes):
 def load_env_from_encrypted_file(derived_key: bytes, encrypted_file_path: str):
     try:
         with open(encrypted_file_path, 'rb') as file:
-            encrypted_data = file.read()    # Read the remaining encrypted data
+            # Read the first 16 bytes as the salt
+            salt = file.read(16)
+            encrypted_data = file.read()
 
         # Use Fernet to decrypt the data
         cipher = Fernet(derived_key)
@@ -178,12 +154,12 @@ def load_env_from_encrypted_file(derived_key: bytes, encrypted_file_path: str):
 
         return True
     except Exception as e:
+        print(e)
         return False
 
     
 # Function to derive a key from the password
-def derive_key(password: str) -> bytes:
-    salt = os.urandom(16)
+def derive_key(password: str, salt) -> bytes:
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
