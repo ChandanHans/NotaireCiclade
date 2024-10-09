@@ -1,0 +1,7 @@
+USER_DATA_FILE = "user_data.bin"
+ENV_FILE = "encrypted_env.bin"
+KLERO_KEY_FILE = "klero_key.bin"
+NOTARY_SHEET_ID = "1lMTB8XEU0POkcJoclLLxZtWp5Yk_fBDAlV_-R2-QZcg"
+FACTURES_SHEET_ID = "1nuWrAZB4XF2Jlo_IaLPxRra-13H_fQffbTT1LBJyqVM"
+RECAP_FOLDER = "Recap-Soumissions"
+DOCUMENT_FOLDER = "Documents"

@@ -1,0 +1,16 @@
+/.venv
+/user_data.bin
+/klero_key.bin
+/encrypt_env_file.py
+/
+/.env
+output.log
+__pycache__
+captcha.wav
+/output
+/k.py
+/blankpdf.pdf
+Recap-Soumissions
+Documents
+/firefox_profile
+/encrypted_env.bin
