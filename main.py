@@ -1,3 +1,4 @@
+from src.print_loger import PrintLogger
 from src.automation_process import AutomationProcess
 from src.utils import *
 from src.constants import *
@@ -45,7 +46,8 @@ def main():
         user_data = get_user_input()
         encrypt_user_data(user_data, derived_key)
     print("\n\n\n")
-
+    
+    sys.stdout = PrintLogger()
     automation = AutomationProcess(user_data)  # Create an instance of AutomationProcess with user_data
     automation.start_process()  # Start the automation process
 

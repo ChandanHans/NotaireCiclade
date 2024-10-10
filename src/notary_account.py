@@ -27,7 +27,7 @@ class NotaryAccount:
         return credentials
 
     def get_drive_service(self):
-        drive_service = build("drive", "v3", credentials=self.creds)
+        drive_service = build("drive", "v3", credentials=self.creds, cache_discovery=False)
         return drive_service
 
     def get_folder_id(self) -> Tuple[str, str, str]:
