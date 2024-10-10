@@ -21,7 +21,7 @@ def main():
             decrypted_data = load_env_from_encrypted_file(derived_key, env_file_path)
 
             if decrypted_data:
-                print("Password correct. Decryption successful!")
+                print("Correct Password.")
                 save_derived_key(derived_key)
             else:
                 print("Incorrect password. Please try again.")
