@@ -6,7 +6,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
-from openai import OpenAI
 
 from .solve_captcha import get_captcha_result
 
@@ -16,7 +15,6 @@ class BrowserManager:
         self.driver = self.initialize_browser()
         self.login()
         self.cookies = self.get_cookie()
-        self.gpt_client = OpenAI(api_key=os.environ["GPT_KEY"])
 
     def initialize_browser(self) -> webdriver.Firefox:
         profile_path = self.create_browser_profile()
@@ -128,11 +126,10 @@ class BrowserManager:
                 self.click_element('//*[@id="recherche.produit.dispose-non"]')
 
                 try:
-                    captcha_image_url = self.driver.find_element(By.ID, "captchaImg").get_attribute(
+                    captcha_image = self.driver.find_element(By.ID, "captchaImg").get_attribute(
                         "src"
                     )
-                    captcha_sound_url = captcha_image_url.replace("image", "sound")
-                    captcha_result = get_captcha_result(self.gpt_client, captcha_sound_url)
+                    captcha_result = get_captcha_result(captcha_image)
                 except:
                     return self.perform_search(fname, lname, dob, dod, file1_path, file2_path, attempt)
                 self.enter_text_in_element('//*[@id="CAPTCHA"]', captcha_result)
