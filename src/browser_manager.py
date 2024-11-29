@@ -131,7 +131,7 @@ class BrowserManager:
                     captcha_image = self.driver.find_element(By.ID, "captchaImg").get_attribute(
                         "src"
                     )
-                    captcha_result = get_captcha_result(captcha_image)
+                    captcha_result = get_captcha_result(self.gpt_client, captcha_image)
                 except:
                     return self.perform_search(fname, lname, dob, dod, file1_path, file2_path, attempt)
                 self.enter_text_in_element('//*[@id="CAPTCHA"]', captcha_result)
@@ -234,8 +234,7 @@ class BrowserManager:
         """Handles the captcha solving mechanism."""
         try:
             captcha_image_url = self.driver.find_element(By.ID, "captchaImg").get_attribute("src")
-            captcha_sound_url = captcha_image_url.replace("image", "sound")
-            return get_captcha_result(self.gpt_client, captcha_sound_url)  # Assuming you have a function to solve captchas
+            return get_captcha_result(self.gpt_client, captcha_image_url)  # Assuming you have a function to solve captchas
         except Exception as e:
             print(f"Captcha solving failed: {e}")
             return ""
