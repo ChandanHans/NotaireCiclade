@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
+from openai import OpenAI
 
 from .solve_captcha import get_captcha_result
 
@@ -15,7 +16,8 @@ class BrowserManager:
         self.driver = self.initialize_browser()
         self.login()
         self.cookies = self.get_cookie()
-
+        self.gpt_client = OpenAI(api_key=os.environ["GPT_KEY"])
+        
     def initialize_browser(self) -> webdriver.Firefox:
         profile_path = self.create_browser_profile()
         options = Options()
@@ -233,7 +235,7 @@ class BrowserManager:
         try:
             captcha_image_url = self.driver.find_element(By.ID, "captchaImg").get_attribute("src")
             captcha_sound_url = captcha_image_url.replace("image", "sound")
-            return get_captcha_result(captcha_sound_url)  # Assuming you have a function to solve captchas
+            return get_captcha_result(self.gpt_client, captcha_sound_url)  # Assuming you have a function to solve captchas
         except Exception as e:
             print(f"Captcha solving failed: {e}")
             return ""

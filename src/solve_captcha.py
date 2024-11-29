@@ -1,17 +1,14 @@
-import requests
 from collections import Counter
-from openai import OpenAI
 
 from .utils import *
 
-gpt_client = OpenAI(api_key=os.environ["GPT_KEY"])
 
 def get_max_repeated_value(my_list):
     counter = Counter(my_list)
     max_repeated = counter.most_common(1)[0][0]  # Get the most common element
     return max_repeated
 
-def get_captcha_result(base64url):
+def get_captcha_result(gpt_client, base64url):
     response = gpt_client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
