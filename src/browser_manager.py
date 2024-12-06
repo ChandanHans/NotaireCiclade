@@ -143,11 +143,8 @@ class BrowserManager:
 
                 time.sleep(2)
 
-                if not self.wait_for_element( '//*[text()="Résultat de votre recherche"]'):
-                    if self.wait_for_element( '//h2[@id="modal-doublon-label"]'):
-                        return (0, None)
-                    else:
-                        return self.perform_search(fname, lname, dob, dod, file1_path, file2_path, attempt)
+                if not self.wait_for_element( '//*[text()="Résultat de votre recherche"]', timeout = 5):
+                    return self.perform_search(fname, lname, dob, dod, file1_path, file2_path, attempt)
 
                 if not self.click_element( '//*[@id="FinalisationButton"]'):
                     return (-1, None)
