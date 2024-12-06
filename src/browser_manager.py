@@ -140,9 +140,7 @@ class BrowserManager:
 
                 self.click_element( '//*[@data-target="#confirmationModal"]')
                 self.click_element( '//*[@id="boutonLancerModale"]')
-
-                time.sleep(2)
-
+                
                 if not self.wait_for_element( '//*[text()="Résultat de votre recherche"]', timeout = 5):
                     return self.perform_search(fname, lname, dob, dod, file1_path, file2_path, attempt)
 
