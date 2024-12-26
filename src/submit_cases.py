@@ -3,7 +3,7 @@ from .notary_account import NotaryAccount
 from .utils import *
 
 
-class AutomationProcess:
+class SubmitCases:
     def __init__(self, user_data: dict):
         self.user_data = user_data
         self.notary = NotaryAccount(user_data.get("Email"))
@@ -12,9 +12,8 @@ class AutomationProcess:
 
     def start_process(self):
         try:
-            print("Starting notary automation process.")
-            all_folders = self.notary.get_target_folders()
-
+            print("----> Start CICLADE Submission <----")
+            all_folders = self.notary.get_folders("2.2")
             if all_folders:
                 for index, folder in enumerate(all_folders):
                     print("------------------------------------------------")
@@ -49,13 +48,13 @@ class AutomationProcess:
             
     def handle_search_result(self, result, folder_id, file1_path, file2_path):
         if result[0] == 1:
-            self.notary.move_folder(folder_id, self.notary.folder_id_23)
+            self.notary.move_folder(folder_id, "2.3" )
             if result[1]:
-                recap_file = download_recap_file(result[1], self.browser.cookies)
+                recap_file = self.browser.download_file(result[1], RECAP_FOLDER)
                 self.notary.upload_file(recap_file, folder_id)
             print("--> SUCCESSFUL <--")
         elif result[0] == -1:
-            self.notary.move_folder(folder_id, self.notary.folder_id_25)
+            self.notary.move_folder(folder_id, "2.5")
             print("--> NEGATIVE <--")
         else:
             print("--> ERROR <--")

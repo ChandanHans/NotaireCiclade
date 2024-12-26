@@ -1,8 +1,10 @@
 from src.print_loger import PrintLogger
-from src.automation_process import AutomationProcess
+from src.submit_cases import SubmitCases
 from src.utils import *
 from src.constants import *
+from src.upload_files import UploadFiles
 from prompt_toolkit import prompt
+
 
 def main():
     while True:
@@ -47,14 +49,30 @@ def main():
         encrypt_user_data(user_data, derived_key)
     print("\n\n\n")
     
+    while True:
+        print("\nSelect an option:")
+        print("1. Submit All Cases")
+        print("2. Upload Payment Files")
+        option = input("\nEnter your choice: ").strip()
+        if option in ["1","2"]:
+            break
+        else:
+            print("Invalid choice! Please select a valid option.")
+            
     sys.stdout = PrintLogger()
-    automation = AutomationProcess(user_data)  # Create an instance of AutomationProcess with user_data
-    automation.start_process()  # Start the automation process
+    if option == "1":
+        automation = SubmitCases(user_data)  # Create an instance of SubmitCases with user_data
+        automation.start_process()  # Start the automation process
+    elif option == "2":
+        automation = UploadFiles(user_data)  # Create an instance of SubmitCases with user_data
+        automation.start_process()  # Start the automation process
 
 
 if __name__ == "__main__":
     if not os.path.exists(RECAP_FOLDER):
         os.makedirs(RECAP_FOLDER)
+    if not os.path.exists(PAYMENT_FOLDER):
+        os.makedirs(PAYMENT_FOLDER)
     if not os.path.exists(DOCUMENT_FOLDER):
         os.makedirs(DOCUMENT_FOLDER)
         

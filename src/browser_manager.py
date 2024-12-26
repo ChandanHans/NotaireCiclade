@@ -1,5 +1,6 @@
 import os
 import time
+import requests
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
@@ -89,10 +90,10 @@ class BrowserManager:
             already_exist = False
             self.driver.get("https://ciclade.caissedesdepots.fr/monespace/#/service/mes-demandes")
             self.driver.refresh()
-            self.enter_text_in_element('//div[@id="mes-demandes_filter"]//input', f"{lname} {fname}")
+            self.enter_text_in_element('//div[@id="mes-demandes_filter"]//input', f"{lname} {fname}", show_error=False)
 
             if self.wait_for_element('//table[@id="mes-demandes"]/tbody/tr/td[6]'):
-                status = self.driver.find_element(By.XPATH, '//table[@id="mes-demandes"]/tbody/tr/td[6]').text
+                status = self.driver.find_element(By.XPATH, '//table[@id="mes-demandes"]/tbody/tr/td[6]').get_attribute("innerText")
                 if(status == "Finaliser"):
                     print("--------->  Finaliser")
                     self.click_element('//table[@id="mes-demandes"]/tbody/tr/td[6]/span/a')
@@ -224,7 +225,8 @@ class BrowserManager:
         self.enter_text_in_element('//*[@id="prenom"]', fname)
         self.enter_text_in_element('//*[@id="dateNaissance"]', dob)
         self.select_dropdown('//*[@id="codeNationalite"]', "1: FRA")
-
+        
+        
     def solve_captcha(self) -> str:
         """Handles the captcha solving mechanism."""
         try:
@@ -246,7 +248,7 @@ class BrowserManager:
                 print(f"Error clicking element with XPath: {xpath}, Error: {e}")
         return False
 
-    def enter_text_in_element(self, xpath, text, max_tries=5):
+    def enter_text_in_element(self, xpath, text, max_tries=5, show_error = True):
         for _ in range(max_tries):
             try:
                 element = self.driver.find_element(By.XPATH, xpath)
@@ -256,7 +258,8 @@ class BrowserManager:
                 element.send_keys(text)
                 return True
             except Exception as e:
-                print(f"Error sending text to element with XPath: {xpath}, Error: {e}")
+                if show_error:
+                    print(f"Error sending text to element with XPath: {xpath}, Error: {e}")
         return False
 
     def wait_for_element(self, xpath, timeout=10):
@@ -302,3 +305,42 @@ class BrowserManager:
     def close_browser(self):
         if self.driver:
             self.driver.quit()
+    
+    def download_file(self, download_url, target_folder):
+        headers = {
+            "Cookie": self.cookies,
+        }
+        response = requests.get(download_url, headers=headers)
+        content_disposition = response.headers.get("Content-Disposition")
+        file_name = None
+        if content_disposition:
+            parts = content_disposition.split(";")
+            for part in parts:
+                if "filename=" in part:
+                    file_name = part.split("=")[1].strip('"')
+        if file_name:
+            file_path = f"{target_folder}/{file_name}"
+            with open(file_path, "wb") as file:
+                file.write(response.content)
+            full_path = os.path.join(os.getcwd(), file_path)
+            return full_path
+
+    def get_payment_files(self, name: str):
+        self.driver.get("https://ciclade.caissedesdepots.fr/monespace/#/service/mes-demandes")
+        self.driver.refresh()
+        self.enter_text_in_element('//div[@id="mes-demandes_filter"]//input', f"{name}", show_error=False)
+        download_urls = []
+        if self.wait_for_element('//table[@id="mes-demandes"]/tbody/tr/td[6]'):
+            status = self.driver.find_element(By.XPATH, '//table[@id="mes-demandes"]/tbody/tr/td[5]').get_attribute("innerText")
+            print(f"--------->  {status}")
+            if(status == "Paiement effectué"):
+                self.click_element('//table[@id="mes-demandes"]/tbody/tr/td[6]/span/a')
+                if self.wait_for_element('//i[@class="fa fa-download"]/parent::a'):
+                    elements = self.driver.find_elements(By.XPATH, '//i[@class="fa fa-download"]/parent::a')
+                    for element in elements:
+                        download_urls.append(element.get_attribute("href"))
+                time.sleep(1)
+                return (1, download_urls)
+            if(status == "Rejetée"):
+                return (-1, download_urls)
+        return (0, download_urls)

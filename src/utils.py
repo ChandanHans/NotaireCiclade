@@ -215,22 +215,3 @@ def get_dob_dod(all_data: tuple[str, str, str], name: str):
         if unidecode(row[0]).lower() == unidecode(name).lower():
             return row[1], row[2]
     return None, None
-
-def download_recap_file(download_url, cookie):
-    headers = {
-        "Cookie": cookie,
-    }
-    response = requests.get(download_url, headers=headers)
-    content_disposition = response.headers.get("Content-Disposition")
-    file_name = None
-    if content_disposition:
-        parts = content_disposition.split(";")
-        for part in parts:
-            if "filename=" in part:
-                file_name = part.split("=")[1].strip('"')
-    if file_name:
-        file_path = f"{RECAP_FOLDER}/{file_name}"
-        with open(file_path, "wb") as file:
-            file.write(response.content)
-        full_path = os.path.join(os.getcwd(), file_path)
-        return full_path

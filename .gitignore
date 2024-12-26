@@ -8,9 +8,10 @@ output.log
 __pycache__
 captcha.wav
 /output
-/k.py
+/k*
 /blankpdf.pdf
 Recap-Soumissions
 Documents
 /firefox_profile
 /encrypted_env.bin
+Justif-Paiements
