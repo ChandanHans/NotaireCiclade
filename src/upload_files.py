@@ -33,15 +33,15 @@ class UploadFiles:
         result = self.browser.get_payment_files(full_name)
         if result[0] == 1:
             for link in result[1]:
-                if "paiement" in link.lower():
-                    file_path = self.browser.download_file(link, PAYMENT_FOLDER)
-                    file_name = os.path.basename(file_path)
-                    exist = self.notary.get_file_by_name(folder_id,[file_name])
-                    if not exist:
-                        print(f"Uploading - {file_name}")
-                        self.notary.upload_file(file_path, folder_id)
-                    else:
-                        print(f"Already Uploaded - {file_name}")
+                print(link)
+                file_path = self.browser.download_file(link, PAYMENT_FOLDER)
+                file_name = os.path.basename(file_path)
+                exist = self.notary.get_file_by_name(folder_id,[file_name])
+                if not exist:
+                    print(f"Uploading - {file_name}")
+                    self.notary.upload_file(file_path, folder_id)
+                else:
+                    print(f"Already Uploaded - {file_name}")
             self.notary.move_folder(folder_id, "2.4" )
         
         if result[0] == -1:

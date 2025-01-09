@@ -338,7 +338,8 @@ class BrowserManager:
                 if self.wait_for_element('//i[@class="fa fa-download"]/parent::a'):
                     elements = self.driver.find_elements(By.XPATH, '//i[@class="fa fa-download"]/parent::a')
                     for element in elements:
-                        download_urls.append(element.get_attribute("href"))
+                        download_url = element.get_attribute("href")
+                        download_urls.append(download_url)
                 time.sleep(1)
                 return (1, download_urls)
             if(status == "Rejetée"):
