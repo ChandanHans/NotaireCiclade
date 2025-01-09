@@ -32,9 +32,11 @@ class UploadFiles:
         full_name = remove_extra_spaces(folder_name).split("(")[0].strip()
         result = self.browser.get_payment_files(full_name)
         if result[0] == 1:
+            has_paiement_file = False
             for link in result[1]:
                 print(link)
                 if "paiement" in link.lower():
+                    has_paiement_file = True
                     file_path = self.browser.download_file(link, PAYMENT_FOLDER)
                     file_name = os.path.basename(file_path)
                     exist = self.notary.get_file_by_name(folder_id,[file_name])
@@ -43,7 +45,8 @@ class UploadFiles:
                         self.notary.upload_file(file_path, folder_id)
                     else:
                         print(f"Already Uploaded - {file_name}")
-            self.notary.move_folder(folder_id, "2.4" )
+            if has_paiement_file:
+                self.notary.move_folder(folder_id, "2.4" )
         
         if result[0] == -1:
             self.notary.move_folder(folder_id, "2.5" )
