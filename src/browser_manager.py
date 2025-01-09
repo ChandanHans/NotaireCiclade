@@ -336,6 +336,7 @@ class BrowserManager:
             if(status == "Paiement effectué"):
                 self.click_element('//table[@id="mes-demandes"]/tbody/tr/td[6]/span/a')
                 if self.wait_for_element('//i[@class="fa fa-download"]/parent::a'):
+                    time.sleep(2)
                     elements = self.driver.find_elements(By.XPATH, '//i[@class="fa fa-download"]/parent::a')
                     for element in elements:
                         download_url = element.get_attribute("href")
