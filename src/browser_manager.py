@@ -324,25 +324,3 @@ class BrowserManager:
                 file.write(response.content)
             full_path = os.path.join(os.getcwd(), file_path)
             return full_path
-
-    def get_payment_files(self, name: str):
-        self.driver.get("https://ciclade.caissedesdepots.fr/monespace/#/service/mes-demandes")
-        self.driver.refresh()
-        self.enter_text_in_element('//div[@id="mes-demandes_filter"]//input', f"{name}", show_error=False)
-        download_urls = []
-        if self.wait_for_element('//table[@id="mes-demandes"]/tbody/tr/td[6]'):
-            status = self.driver.find_element(By.XPATH, '//table[@id="mes-demandes"]/tbody/tr/td[5]').get_attribute("innerText")
-            print(f"--------->  {status}")
-            if(status == "Paiement effectué"):
-                self.click_element('//table[@id="mes-demandes"]/tbody/tr/td[6]/span/a')
-                if self.wait_for_element('//i[@class="fa fa-download"]/parent::a'):
-                    time.sleep(2)
-                    elements = self.driver.find_elements(By.XPATH, '//i[@class="fa fa-download"]/parent::a')
-                    for element in elements:
-                        download_url = element.get_attribute("href")
-                        download_urls.append(download_url)
-                time.sleep(1)
-                return (1, download_urls)
-            if(status == "Rejetée"):
-                return (-1, download_urls)
-        return (0, download_urls)
