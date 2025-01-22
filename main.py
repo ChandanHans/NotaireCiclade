@@ -46,8 +46,8 @@ def main():
         os.system("cls")
         print("Enter your Ciclade informations:-\n\n")
         user_data = get_user_input()
-        encrypt_user_data(user_data, derived_key)
     print("\n\n\n")
+    encrypt_user_data(user_data, derived_key)
     
     while True:
         print("\nSelect an option:")
