@@ -1,13 +1,13 @@
-from .browser_manager import BrowserManager
+from .case_submission import CaseSubmissionFlow
+from .ciclade_api_session import CicladeApiSession
 from .notary_account import NotaryAccount
 from .utils import *
 
 
 class SubmitCases:
-    def __init__(self, user_data: dict):
-        self.user_data = user_data
-        self.notary = NotaryAccount(user_data.get("Email"))
-        self.browser = BrowserManager(user_data)
+    def __init__(self, session:CicladeApiSession):
+        self.session = session
+        self.notary = NotaryAccount(session.user_email)
         self.clients_data = self.notary.get_clients_data()
 
     def start_process(self):
@@ -41,7 +41,18 @@ class SubmitCases:
             file2_path = self.notary.download_file(mandat, "Mandat")
 
             if file1_path and file2_path:
-                result = self.browser.perform_search(fname, lname, dob, dod, file1_path, file2_path)
+                payload = {
+                    "fname": fname,
+                    "lname": lname,
+                    "dob": dob,
+                    "dod": dod,
+                    "death_certificate": file1_path,
+                    "mandat": file2_path,
+                }
+
+                workflow = CaseSubmissionFlow(self.session,payload)
+                workflow.execute_workflow()
+
                 self.handle_search_result(result, folder_id, file1_path, file2_path)
         else:
             print("Missing data!")

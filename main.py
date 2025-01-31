@@ -1,3 +1,4 @@
+from src.ciclade_api_session import CicladeApiSession
 from src.print_loger import PrintLogger
 from src.submit_cases import SubmitCases
 from src.utils import *
@@ -49,6 +50,8 @@ def main():
     print("\n\n\n")
     encrypt_user_data(user_data, derived_key)
     
+    session = CicladeApiSession(user_data)
+
     while True:
         print("\nSelect an option:")
         print("1. Submit All Cases")
@@ -61,7 +64,7 @@ def main():
             
     sys.stdout = PrintLogger()
     if option == "1":
-        automation = SubmitCases(user_data)  # Create an instance of SubmitCases with user_data
+        automation = SubmitCases(session)  # Create an instance of SubmitCases with user_data
         automation.start_process()  # Start the automation process
     elif option == "2":
         automation = UploadFiles(user_data)  # Create an instance of SubmitCases with user_data
