@@ -1,16 +1,14 @@
-from .browser_manager import BrowserManager
+from .ciclade_api_session import CicladeApiSession
 from .notary_account import NotaryAccount
 from .utils import *
 
 
 class UploadFiles:
-    def __init__(self, user_data: dict):
-        self.user_data = user_data
-        self.notary = NotaryAccount(user_data.get("Email"))
-        self.browser = BrowserManager(user_data)
-        self.cookies = self.browser.cookies
+    def __init__(self, session:CicladeApiSession):
+        self.session = session
+        self.notary = NotaryAccount(session.user_email)
+        self.clients_data = self.notary.get_clients_data()
         self.all_case = self.get_all_cases()
-        self.browser.close_browser()
         
     def start_process(self):
         try:
@@ -55,18 +53,12 @@ class UploadFiles:
                     self.notary.move_folder(folder_id, "2.5" )
 
     def get_all_cases(self):
-        headers = {
-            "Cookie": self.cookies,
-        }
-        response = requests.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/liste-demandes", headers=headers)
+        response = self.session.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/liste-demandes")
         result : dict = response.json()
         return result.get("other",[])
     
     def get_payment_files(self, id):
-        headers = {
-            "Cookie": self.cookies,
-        }
-        response = requests.get(f"https://ciclade.caissedesdepots.fr/ciclade-service/api/recapitulatif-demande/{id}", headers=headers)
+        response = self.session.get(f"https://ciclade.caissedesdepots.fr/ciclade-service/api/recapitulatif-demande/{id}")
         result : dict = response.json()
         payment_files = []
         if result.get("other",[]):
@@ -80,10 +72,7 @@ class UploadFiles:
         
         
     def download_file(self, download_url, target_folder):
-        headers = {
-            "Cookie": self.cookies,
-        }
-        response = requests.get(download_url, headers=headers)
+        response = self.session.get(download_url)
         content_disposition = response.headers.get("Content-Disposition")
         file_name = None
         if content_disposition:

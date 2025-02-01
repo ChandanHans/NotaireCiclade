@@ -45,6 +45,7 @@ class CicladeApiSession(requests.Session):
         for _ in range(5): 
             try:
                 response = self.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/account/account-detail")
+                tim
                 return response.json()["other"]
             except requests.RequestException as e:
                 logger.error(f"Error fetching user info: {e}")
@@ -157,7 +158,7 @@ class CicladeApiSession(requests.Session):
     def get_captcha(self):
         # Return existing or refresh if needed
         if not self.captcha:
-            return "self.refresh_captcha()"
+            return self.refresh_captcha()
         return self.captcha
 
     def download_file(self, download_url, target_folder):

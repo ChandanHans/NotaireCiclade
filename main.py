@@ -43,15 +43,16 @@ def main():
             # Ask if the user wants to continue with the old data or change it
             choice = input("\nDo you want to continue with this data? (y/n): ").strip().lower()
             if choice != 'n':
+                encrypt_user_data(user_data, derived_key)
                 break
         os.system("cls")
         print("Enter your Ciclade informations:-\n\n")
         user_data = get_user_input()
+        encrypt_user_data(user_data, derived_key)
     print("\n\n\n")
-    encrypt_user_data(user_data, derived_key)
     
     session = CicladeApiSession(user_data)
-
+    session.authenticate()
     while True:
         print("\nSelect an option:")
         print("1. Submit All Cases")

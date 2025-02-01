@@ -18,14 +18,15 @@ class SubmitCases:
                 for index, folder in enumerate(all_folders):
                     print("------------------------------------------------")
                     print(f"Processing folder {index + 1}/{len(all_folders)}: {folder['name']}")
-                    self.process_folder(folder)
+                    try:
+                        self.process_folder(folder)
+                    except Exception as e:
+                        print(f"Error : {e}")
                     print("------------------------------------------------")
 
             print("Task Completed Successfully")
         except Exception as e:
             print(f"An error occurred during the process: {e}")
-        finally:
-            self.browser.close_browser()
 
     def process_folder(self, folder):
         folder_id = folder["id"]
@@ -50,24 +51,19 @@ class SubmitCases:
                     "mandat": file2_path,
                 }
 
-                workflow = CaseSubmissionFlow(self.session,payload)
-                workflow.execute_workflow()
-
-                self.handle_search_result(result, folder_id, file1_path, file2_path)
+                case = CaseSubmissionFlow(self.session,payload)
+                process_status = case.execute_workflow()
+                if process_status and case.status:
+                    recap_url = f"https://ciclade.caissedesdepots.fr/ciclade-service/api/telecharger-recapitulatif-soumission/{case.case_id}"
+                    recap_file = self.session.download_file(recap_url, RECAP_FOLDER)
+                    self.notary.upload_file(recap_file, folder_id)
+                    self.notary.move_folder(folder_id, "2.3" )
+                    print("--> SUCCESSFUL <--")
+                elif not case.status:
+                    self.notary.move_folder(folder_id, "2.5")
+                    print("--> NEGATIVE <--")
+                os.remove(file1_path)
+                os.remove(file2_path)
+                time.sleep(3)
         else:
             print("Missing data!")
-            
-    def handle_search_result(self, result, folder_id, file1_path, file2_path):
-        if result[0] == 1:
-            self.notary.move_folder(folder_id, "2.3" )
-            if result[1]:
-                recap_file = self.browser.download_file(result[1], RECAP_FOLDER)
-                self.notary.upload_file(recap_file, folder_id)
-            print("--> SUCCESSFUL <--")
-        elif result[0] == -1:
-            self.notary.move_folder(folder_id, "2.5")
-            print("--> NEGATIVE <--")
-        else:
-            print("--> ERROR <--")
-        os.remove(file1_path)
-        os.remove(file2_path)

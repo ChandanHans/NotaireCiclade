@@ -1,7 +1,7 @@
 import logging
 import requests
 
-from ciclade_api_session import CicladeApiSession
+from .ciclade_api_session import CicladeApiSession
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class CaseSubmissionFlow:
             if response.status_code == 200:
                 for case in response.json().get("other", []):
                     if (case.get("intituleDemande") == self.case_full_name 
-                            and case.get("statut") == "A_FINALISER"):
+                            and case.get("statut") != "SUPPRIMEE"):
                         return case.get("idDemande")
         except requests.RequestException as e:
             logger.error(f"Error fetching case list: {e}")
@@ -40,11 +40,6 @@ class CaseSubmissionFlow:
     def create_case(self):
         """Step 1: Create a new case if none exists."""
         print("Step 1:")
-        if self.case_id:
-            print("--- Case already exists.")
-            return True
-
-        captcha_data = self.session.get_captcha()
 
         for _ in range(10):  # Retry up to 5 times for invalid CAPTCHA
             payload = {
@@ -55,7 +50,7 @@ class CaseSubmissionFlow:
                 "prenom": self.payload["fname"],
                 "dateNaissance": self.payload["dob"],
                 "codeNationalite": "FRA",
-                "validationCaptcha": captcha_data
+                "validationCaptcha": self.session.get_captcha()
             }
             try:
                 response = self.session.post(
@@ -74,13 +69,14 @@ class CaseSubmissionFlow:
                     return False
                 elif response.status_code == 400:
                     print("--- Invalid CAPTCHA. Retrying...")
-                    captcha_data = self.session.refresh_captcha()
+                    self.session.refresh_captcha()
                 elif response.status_code == 404:
                     print("--- No results found. Cannot create case.")
                     self.status = False
                     return False
                 else:
                     logger.error(f"Unexpected error: {response.status_code}")
+                    self.status = False
                     return False
 
             except requests.RequestException as e:
@@ -202,24 +198,24 @@ class CaseSubmissionFlow:
     def execute_workflow(self):
         """Execute the entire workflow (all steps)."""
         print("Starting workflow...")
-        status = self.create_case()
-        if status == 1:
-            print("Using existing case.")
-        elif status != 1:  
-            return status
+        if not self.create_case():
+            if self.status:
+                print("Using existing case.")
+                return True
+            return False
 
         if not self.my_request():
             print("Step 2 failed.")
-            return 0
+            return False
 
         if not self.supporting_documents():
             print("Step 3 failed.")
-            return 0
+            return False
 
         # Uncomment to finalize automatically:
         # if not self.finalize_submission():
         #     print("Step 4 failed.")
-        #     return 0
+        #     return False
 
         print("Workflow completed.")
-        return 1
+        return True
