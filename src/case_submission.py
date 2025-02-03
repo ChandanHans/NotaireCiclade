@@ -15,16 +15,20 @@ class CaseSubmissionFlow:
     def get_case_id(self):
         """Fetch an existing open case if it matches."""
         try:
-            response = self.session.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/liste-demandes")
+            response = self.session.get(
+                "https://ciclade.caissedesdepots.fr/ciclade-service/api/liste-demandes"
+            )
             if response.status_code == 200:
                 for case in response.json().get("other", []):
-                    if (case.get("intituleDemande") == self.case_full_name 
-                            and case.get("statut") != "SUPPRIMEE"):
+                    if (
+                        case.get("intituleDemande") == self.case_full_name
+                        and case.get("statut") != "SUPPRIMEE"
+                    ):
                         return case.get("idDemande")
         except requests.RequestException as e:
             print(f"!!! Error fetching case list: {e}")
         return None
-    
+
     def get_document_id(self):
         """Extract RBI ID from a response."""
         response = self.session.get(
@@ -48,7 +52,7 @@ class CaseSubmissionFlow:
                 "prenom": self.payload["fname"],
                 "dateNaissance": self.payload["dob"],
                 "codeNationalite": "FRA",
-                "validationCaptcha": self.session.get_captcha()
+                "validationCaptcha": self.session.get_captcha(),
             }
             try:
                 response = self.session.post(
@@ -90,9 +94,9 @@ class CaseSubmissionFlow:
         if not self.case_id:
             print("!!! Cannot submit request. No case ID.")
             return False
-        
+
         self.get_document_id()
-        
+
         try:
             # Example: Step 2 submission
             self.session.post(
@@ -100,8 +104,8 @@ class CaseSubmissionFlow:
                 json={
                     "idDemande": self.case_id,
                     "intituleDemande": self.case_full_name,
-                    "codePosDemandeur": "NOTAIRE"
-                }
+                    "codePosDemandeur": "NOTAIRE",
+                },
             )
 
             # RIB Document Upload (if needed)
@@ -124,13 +128,13 @@ class CaseSubmissionFlow:
                             "adresse": self.session.user_info.get("adresse", ""),
                             "codePostal": self.session.user_info.get("codePostal", ""),
                             "codePays": "FR",
-                            "ville": self.session.user_info.get("ville", ""),
+                            "ville": self.session.user_info.get("ville", "")
                         },
                     )
                     print("--- RIB updated.")
                     return True
                 else:
-                    print("!!! Error uploading RIB.")
+                    print(f"!!! Error uploading RIB.")
                     return False
         except (IOError, requests.RequestException) as e:
             print(f"!!! Error in step 2: {e}")
@@ -197,8 +201,8 @@ class CaseSubmissionFlow:
         if not self.create_case():
             if self.status:
                 print("--- Using existing case.")
-                return True
-            return False
+            else:
+                return False
 
         if not self.my_request():
             print("!!! Step 2 failed.")
