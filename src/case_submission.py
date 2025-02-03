@@ -213,9 +213,9 @@ class CaseSubmissionFlow:
             return False
 
         # Uncomment to finalize automatically:
-        # if not self.finalize_submission():
-        #     print("!!! Step 4 failed.")
-        #     return False
+        if not self.finalize_submission():
+            print("!!! Step 4 failed.")
+            return False
 
         print("Workflow completed.")
         return True
