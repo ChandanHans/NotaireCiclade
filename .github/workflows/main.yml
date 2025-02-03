@@ -8,8 +8,8 @@ jobs:
     runs-on: windows-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      RELEASE_TAG: 'v4.5.0'
-      RELEASE_TITLE: 'NotaryCiclade - Firefox'
+      RELEASE_TAG: 'v5.0.0'
+      RELEASE_TITLE: 'NotaryCiclade - API'
       COMMIT_SHA: ${{ github.sha }}
       REPO: ${{ github.repository }}
       

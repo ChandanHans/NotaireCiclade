@@ -13,7 +13,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 from tkinter import Tk, filedialog
 import gspread
-import requests
 from unidecode import unidecode
 from prompt_toolkit import prompt
 from cryptography.fernet import Fernet
@@ -119,6 +118,33 @@ def get_user_input():
         "BIC": bic_var,
         "RBI Pdf": rbi_path
     }
+    
+def ask_for_new_data(user_data):
+    print("What do you want to update:")
+    print("1. Email")
+    print("2. Password")
+    print("3. Account owner")
+    print("4. IBAN")
+    print("5. BIC")
+    print("6. RBI Pdf")
+    choice = int(input("\nEnter (1/2/3/4/5/6) : "))
+    while choice not in range(1,7):
+        print("!Enter a valid option!")
+        choice = int(input("\nEnter (1/2/3/4/5/6) : "))
+    if choice == 1:
+        user_data["Email"] = input("Email: ")
+    elif choice == 2:
+        user_data["Password"] = prompt("Password: ", is_password=True)
+    elif choice == 3:
+        user_data["Account owner"] = input("Account owner: ")
+    elif choice == 4:
+        user_data["IBAN"] = input("IBAN: ")
+    elif choice == 5:
+        user_data["BIC"] = input("BIC: ")
+    elif choice == 6:
+        user_data["RBI Pdf"] = get_valid_file_path()
+    return user_data    
+    
     
 # Function to load the saved derived key if it exists
 def load_derived_key():

@@ -1,9 +1,7 @@
-import logging
 import requests
 
 from .ciclade_api_session import CicladeApiSession
 
-logger = logging.getLogger(__name__)
 
 class CaseSubmissionFlow:
     def __init__(self, session: CicladeApiSession, payload: dict):
@@ -24,7 +22,7 @@ class CaseSubmissionFlow:
                             and case.get("statut") != "SUPPRIMEE"):
                         return case.get("idDemande")
         except requests.RequestException as e:
-            logger.error(f"Error fetching case list: {e}")
+            print(f"!!! Error fetching case list: {e}")
         return None
     
     def get_document_id(self):
@@ -75,30 +73,29 @@ class CaseSubmissionFlow:
                     self.status = False
                     return False
                 else:
-                    logger.error(f"Unexpected error: {response.status_code}")
+                    print(f"Unexpected error: {response.status_code}")
                     self.status = False
                     return False
 
             except requests.RequestException as e:
-                logger.error(f"Request error while creating case: {e}")
+                print(f"!!! Request error while creating case: {e}")
                 return False
 
-        logger.error("Failed to create case after multiple attempts.")
+        print("!!! Failed to create case after multiple attempts.")
         return False
 
     def my_request(self):
         """Step 2: Submit initial data and RIB info."""
-        logger.info(f"Step 2:")
+        print(f"Step 2:")
         if not self.case_id:
-            logger.error("Cannot submit request. No case ID.")
+            print("!!! Cannot submit request. No case ID.")
             return False
-
-        print("Submitting initial info...")
+        
         self.get_document_id()
         
         try:
             # Example: Step 2 submission
-            step_response = self.session.post(
+            self.session.post(
                 "https://ciclade.caissedesdepots.fr/ciclade-service/api/poursuivre-etape1",
                 json={
                     "idDemande": self.case_id,
@@ -133,10 +130,10 @@ class CaseSubmissionFlow:
                     print("--- RIB updated.")
                     return True
                 else:
-                    logger.error("Error uploading RIB.")
+                    print("!!! Error uploading RIB.")
                     return False
         except (IOError, requests.RequestException) as e:
-            logger.error(f"Error in step 2: {e}")
+            print(f"!!! Error in step 2: {e}")
             return False
 
         return True
@@ -145,7 +142,7 @@ class CaseSubmissionFlow:
         """Step 3: Upload supporting docs."""
         print("Step 3:")
         if not self.case_id:
-            logger.error("No case ID. Cannot upload documents.")
+            print("!!! No case ID. Cannot upload documents.")
             return False
 
         print("--- Uploading documents.")
@@ -174,7 +171,7 @@ class CaseSubmissionFlow:
             print("--- Documents uploaded.")
             return True
         except (IOError, requests.RequestException) as e:
-            logger.error(f"Error uploading documents: {e}")
+            print(f"!!! Error uploading documents: {e}")
             return False
 
     def finalize_submission(self):
@@ -189,32 +186,31 @@ class CaseSubmissionFlow:
                 print("--- Submission finalized.")
                 return True
             else:
-                print(f"Failed finalization. Status code: {response.status_code}")
+                print(f"!!! Failed finalization. Status code: {response.status_code}")
                 return False
         except requests.RequestException as e:
-            logger.error(f"Error finalizing submission: {e}")
+            print(f"!!! Error finalizing submission: {e}")
             return False
 
     def execute_workflow(self):
         """Execute the entire workflow (all steps)."""
-        print("Starting workflow...")
         if not self.create_case():
             if self.status:
-                print("Using existing case.")
+                print("--- Using existing case.")
                 return True
             return False
 
         if not self.my_request():
-            print("Step 2 failed.")
+            print("!!! Step 2 failed.")
             return False
 
         if not self.supporting_documents():
-            print("Step 3 failed.")
+            print("!!! Step 3 failed.")
             return False
 
         # Uncomment to finalize automatically:
         # if not self.finalize_submission():
-        #     print("Step 4 failed.")
+        #     print("!!! Step 4 failed.")
         #     return False
 
         print("Workflow completed.")

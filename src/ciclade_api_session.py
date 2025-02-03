@@ -45,7 +45,6 @@ class CicladeApiSession(requests.Session):
         for _ in range(5): 
             try:
                 response = self.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/account/account-detail")
-                tim
                 return response.json()["other"]
             except requests.RequestException as e:
                 logger.error(f"Error fetching user info: {e}")

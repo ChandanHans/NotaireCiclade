@@ -45,31 +45,36 @@ def main():
             if choice != 'n':
                 encrypt_user_data(user_data, derived_key)
                 break
-        os.system("cls")
+            
         print("Enter your Ciclade informations:-\n\n")
-        user_data = get_user_input()
+        if not user_data:
+            user_data = get_user_input()
+        else:
+            user_data = ask_for_new_data(user_data)
         encrypt_user_data(user_data, derived_key)
     print("\n\n\n")
     
     session = CicladeApiSession(user_data)
-    session.authenticate()
-    while True:
-        print("\nSelect an option:")
-        print("1. Submit All Cases")
-        print("2. Upload Payment Files")
-        option = input("\nEnter your choice: ").strip()
-        if option in ["1","2"]:
-            break
-        else:
-            print("Invalid choice! Please select a valid option.")
-            
-    sys.stdout = PrintLogger()
-    if option == "1":
-        automation = SubmitCases(session)  # Create an instance of SubmitCases with user_data
-        automation.start_process()  # Start the automation process
-    elif option == "2":
-        automation = UploadFiles(user_data)  # Create an instance of SubmitCases with user_data
-        automation.start_process()  # Start the automation process
+    if session.authenticate():
+        while True:
+            print("\nSelect an option:")
+            print("1. Submit All Cases")
+            print("2. Upload Payment Files")
+            option = input("\nEnter your choice: ").strip()
+            if option in ["1","2"]:
+                break
+            else:
+                print("Invalid choice! Please select a valid option.")
+                
+        sys.stdout = PrintLogger()
+        if option == "1":
+            automation = SubmitCases(session)  # Create an instance of SubmitCases with user_data
+            automation.start_process()  # Start the automation process
+        elif option == "2":
+            automation = UploadFiles(session)  # Create an instance of SubmitCases with user_data
+            automation.start_process()  # Start the automation process
+    else:
+        print("Try Again Later!!")
 
 
 if __name__ == "__main__":
