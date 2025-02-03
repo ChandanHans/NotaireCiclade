@@ -25,7 +25,7 @@ class CicladeApiSession(requests.Session):
         self.gpt_client = OpenAI(api_key=os.environ["GPT_KEY"])
         self.token = None
         self.captcha = None
-
+        self.user_info = None
         self.headers.update({
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -33,12 +33,11 @@ class CicladeApiSession(requests.Session):
                 "Chrome/114.0.0.0 Safari/537.36"
             )
         })
-
+        
         # Load session if it exists
         self.load_session()
-
-        # Check if user info is available
-        self.user_info = self.get_user_info()
+        
+        self.authenticate()
 
 
     def get_user_info(self):
@@ -93,6 +92,7 @@ class CicladeApiSession(requests.Session):
                 if verification_response.status_code == 200:
                     print("Verification successful.")
                     self.save_session()
+                    self.user_info = self.get_user_info()
                     return True
                 else:
                     print("Invalid verification code.")
@@ -104,6 +104,7 @@ class CicladeApiSession(requests.Session):
         else:
             print("Authenticated successfully.")
             self.save_session()
+            self.user_info = self.get_user_info()
             return True
 
     def confirm_account(self):

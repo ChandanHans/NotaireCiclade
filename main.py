@@ -55,7 +55,7 @@ def main():
     print("\n\n\n")
     
     session = CicladeApiSession(user_data)
-    if session.authenticate():
+    if session and session.user_info:
         while True:
             print("\nSelect an option:")
             print("1. Submit All Cases")
