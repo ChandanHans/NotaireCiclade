@@ -184,7 +184,7 @@ class CaseSubmissionFlow:
         print("--- Final submission.")
         try:
             response = self.session.post(
-                f"https://ciclade.caissedesdepots.fr/ciclade-service/api/finalize/{self.case_id}"
+                f"https://ciclade.caissedesdepots.fr/ciclade-service/api/soumettre-demande/{self.case_id}"
             )
             if response.status_code == 200:
                 print("--- Submission finalized.")
