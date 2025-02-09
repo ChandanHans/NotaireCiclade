@@ -33,7 +33,7 @@ class SubmitCases:
         folder_name = folder["name"]
         full_name = remove_extra_spaces(folder_name).split("(")[0].strip()
         fname, lname = split_name(full_name)
-        dob, dod = get_dob_dod(self.clients_data, full_name)
+        dob, dod = get_dob_dod(self.clients_data, folder_id)
         death_proof = self.notary.get_file_by_name(folder_id, ("acte de dece", "actes de dece"))
         mandat = self.notary.get_file_by_name(folder_id, ("mandat",))
 

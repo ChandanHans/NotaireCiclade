@@ -12,8 +12,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 from tkinter import Tk, filedialog
-import gspread
-from unidecode import unidecode
 from prompt_toolkit import prompt
 from cryptography.fernet import Fernet
 
@@ -224,20 +222,8 @@ def split_name(full_name: str):
     first_name = " ".join(first_name_parts)
     return first_name, last_name
 
-
-def get_clients_data(creds):
-    gc = gspread.authorize(creds)
-    factures_sheet = gc.open_by_key(FACTURES_SHEET_ID)
-    factures_worksheet = factures_sheet.get_worksheet(0)
-    all_data = factures_worksheet.get_all_values()
-    required_data = [
-        (remove_extra_spaces(row[1]).strip(), row[2], row[3]) for row in all_data
-    ]
-    return required_data
-
-
-def get_dob_dod(all_data: tuple[str, str, str], name: str):
+def get_dob_dod(all_data: tuple[str, str, str], folder_id: str):
     for row in all_data:
-        if unidecode(row[0]).lower() == unidecode(name).lower():
+        if folder_id in row[3]:
             return row[1], row[2]
     return None, None

@@ -16,9 +16,10 @@ class NotaryAccount:
     def __init__(self, email) -> None:
         self.email: str = email
         self.creds: service_account.Credentials = self.get_credentials()
+        self.gc = gspread.authorize(self.creds)
         self.drive_service = self.get_drive_service()
         self.folders = self.get_folder_id()
-
+        
     def get_credentials(self):
         scopes = ["https://www.googleapis.com/auth/drive"]
         credentials = service_account.Credentials.from_service_account_info(
@@ -33,8 +34,7 @@ class NotaryAccount:
         return drive_service
 
     def get_folder_id(self):
-        gc = gspread.authorize(self.creds)
-        notary_sheet = gc.open_by_key(NOTARY_SHEET_ID)
+        notary_sheet = self.gc.open_by_key(NOTARY_SHEET_ID)
         notary_worksheet = notary_sheet.get_worksheet(0)
         data: list[str] = notary_worksheet.get_all_values()
 
@@ -218,11 +218,22 @@ class NotaryAccount:
 
     
     def get_clients_data(self):
-        gc = gspread.authorize(self.creds)
-        factures_sheet = gc.open_by_key(FACTURES_SHEET_ID)
+        """
+        Retrieves client data from the first worksheet of the Google Sheet 
+        identified by FACTURES_SHEET_ID.
+
+        Returns:
+            list of tuples: Each tuple contains:
+                - Name (row[0])
+                - Date of Birth (DOB) (row[2])
+                - Date of Death (DOD) (row[3])
+                - Folder link (row[4])
+        """
+        factures_sheet = self.gc.open_by_key(FACTURES_SHEET_ID)
         factures_worksheet = factures_sheet.get_worksheet(0)
         all_data = factures_worksheet.get_all_values()
         required_data = [
-            (remove_extra_spaces(row[1]).strip(), row[2], row[3]) for row in all_data
+            (remove_extra_spaces(row[1]).strip(), row[2], row[3],row[4]) for row in all_data
         ]
         return required_data
+

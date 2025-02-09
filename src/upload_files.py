@@ -28,46 +28,52 @@ class UploadFiles:
     def process_folder(self, folder):
         folder_id = folder["id"]
         folder_name = folder["name"]
+        dob, dod = get_dob_dod(self.clients_data, folder_id)
         full_name = remove_extra_spaces(folder_name).split("(")[0].strip()
         for case in self.all_case:
             if remove_extra_spaces(case["intituleDemande"]) == full_name:
-                if case["statut"] == "PAIEMENT_EFFECTUE":
-                    print("PAIEMENT_EFFECTUE")
-                    payment_file_urls = self.get_payment_files(case["idDemande"])
+                case_details = self.get_case_details(case["idDemande"])
+                if dob == case_details["dateNaissance"] and dod == case_details["dateDeces"]:
+                    if case["statut"] == "PAIEMENT_EFFECTUE":
+                        print("PAIEMENT_EFFECTUE")
+                        payment_file_urls = self.get_payment_files(case_details)
 
-                    for url in payment_file_urls:
-                        has_paiement_file = True
-                        file_path = self.download_file(url, PAYMENT_FOLDER)
-                        file_name = os.path.basename(file_path)
-                        exist = self.notary.get_file_by_name(folder_id,[file_name])
-                        if not exist:
-                            print(f"Uploading - {file_name}")
-                            self.notary.upload_file(file_path, folder_id)
-                        else:
-                            print(f"Already Uploaded - {file_name}")
-                    if has_paiement_file:
-                        self.notary.move_folder(folder_id, "2.4" )
-                
-                elif case["statut"] == "REJETEE":
-                    print("REJETEE")
-                    self.notary.move_folder(folder_id, "2.5" )
+                        for url in payment_file_urls:
+                            has_paiement_file = True
+                            file_path = self.download_file(url, PAYMENT_FOLDER)
+                            file_name = os.path.basename(file_path)
+                            exist = self.notary.get_file_by_name(folder_id,[file_name])
+                            if not exist:
+                                print(f"Uploading - {file_name}")
+                                self.notary.upload_file(file_path, folder_id)
+                            else:
+                                print(f"Already Uploaded - {file_name}")
+                        if has_paiement_file:
+                            self.notary.move_folder(folder_id, "2.4" )
+                    
+                    elif case["statut"] == "REJETEE":
+                        print("REJETEE")
+                        self.notary.move_folder(folder_id, "2.5" )
 
     def get_all_cases(self):
         response = self.session.get("https://ciclade.caissedesdepots.fr/ciclade-service/api/liste-demandes")
         result : dict = response.json()
         return result.get("other",[])
     
-    def get_payment_files(self, id):
+    def get_case_details(self, id):
         response = self.session.get(f"https://ciclade.caissedesdepots.fr/ciclade-service/api/recapitulatif-demande/{id}")
         result : dict = response.json()
+        return result.get("other",[])
+    
+    def get_payment_files(self, case_data):
         payment_files = []
-        if result.get("other",[]):
-            files = result["other"]["documentATelechargerLst"]
-            for file in files:
-                if file["type"] == "JUSTIF_PAIEMENT":
-                    file_id = file["idDocJustificatif"]
-                    url = f"https://ciclade.caissedesdepots.fr/ciclade-service/api/telecharger-justificatif-paiement/{id}/{file_id}"
-                    payment_files.append(url)
+        files = case_data["documentATelechargerLst"]
+        id = case_data['idDemande']
+        for file in files:
+            if file["type"] == "JUSTIF_PAIEMENT":
+                file_id = file["idDocJustificatif"]
+                url = f"https://ciclade.caissedesdepots.fr/ciclade-service/api/telecharger-justificatif-paiement/{id}/{file_id}"
+                payment_files.append(url)
         return payment_files
         
         
