@@ -1,5 +1,5 @@
 /.venv
-/user_data.bin
+/user_data*
 /klero_key.bin
 /encrypt_env_file.py
 /
