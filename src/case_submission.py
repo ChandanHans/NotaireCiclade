@@ -64,11 +64,11 @@ class CaseSubmissionFlow:
                     self.case_id = response.json()["other"]["idDemande"]
                     print(f"--- Case created with ID {self.case_id}.")
                     self.status = True
-                    return 201
+                    return True
                 elif response.status_code == 412:
                     print("--- This case was already submitted.")
                     self.status = True
-                    return 412
+                    return False
                 elif response.status_code == 400:
                     print("--- Invalid CAPTCHA. Retrying...")
                     self.session.refresh_captcha()
@@ -198,11 +198,7 @@ class CaseSubmissionFlow:
 
     def execute_workflow(self):
         """Execute the entire workflow (all steps)."""
-        status1 = self.create_case()
-        if status1 == 412:
-            return True
-        
-        if status1 != 201:
+        if not self.create_case():
             if self.status:
                 print("--- Using existing case.")
             else:
