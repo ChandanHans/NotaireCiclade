@@ -53,12 +53,15 @@ class SubmitCases:
 
                 case = CaseSubmissionFlow(self.session,payload)
                 process_status = case.execute_workflow()
-                if process_status and case.status:
-                    recap_url = f"https://ciclade.caissedesdepots.fr/ciclade-service/api/telecharger-recapitulatif-soumission/{case.case_id}"
-                    recap_file = self.session.download_file(recap_url, RECAP_FOLDER)
-                    self.notary.upload_file(recap_file, folder_id)
-                    self.notary.move_folder(folder_id, "2.3" )
-                    print("--> SUCCESSFUL <--")
+                if process_status or case.status:
+                    try:
+                        recap_url = f"https://ciclade.caissedesdepots.fr/ciclade-service/api/telecharger-recapitulatif-soumission/{case.case_id}"
+                        recap_file = self.session.download_file(recap_url, RECAP_FOLDER)
+                        self.notary.upload_file(recap_file, folder_id)
+                        self.notary.move_folder(folder_id, "2.3" )
+                        print("--> SUCCESSFUL <--")
+                    except:
+                        print("--> ERROR <--")
                 elif not case.status:
                     self.notary.move_folder(folder_id, "2.5")
                     print("--> NEGATIVE <--")
