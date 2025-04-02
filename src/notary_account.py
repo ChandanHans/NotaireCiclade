@@ -60,23 +60,32 @@ class NotaryAccount:
 
         raise LookupError("User not found in database")
 
-    def get_folders(self, folder_code = "2.2"):
+    def get_folders(self, folder_code="2.2"):
         query = f"""'{self.folders[folder_code]}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"""
         all_folders = []
-        try:
-            request = self.drive_service.files().list(
-                q=query, spaces="drive", fields="files(id, name)"
-            )
+        page_token = None
 
-            while request is not None:
+        try:
+            while True:
+                request = self.drive_service.files().list(
+                    q=query,
+                    spaces="drive",
+                    fields="nextPageToken, files(id, name)",
+                    pageToken=page_token
+                )
                 response = execute_with_retry(request)
                 folders = response.get("files", [])
-                all_folders += folders
-                request = self.drive_service.files().list_next(request, response)
+                all_folders.extend(folders)
+
+                page_token = response.get("nextPageToken", None)
+                if not page_token:
+                    break
 
         except Exception as e:
             print(f"An error occurred: {e}")
+        
         return all_folders
+
 
     def get_files_in_folder(self, folder_id):
         try:
