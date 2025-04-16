@@ -59,7 +59,7 @@ class CaseSubmissionFlow:
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-demande",
                     json=payload,
                 )
-
+                print(f"[{response.status_code}] ",end="\r")
                 if response.status_code == 201:
                     self.case_id = response.json()["other"]["idDemande"]
                     print(f"--- Case created with ID {self.case_id}.")
@@ -110,6 +110,8 @@ class CaseSubmissionFlow:
 
             # RIB Document Upload (if needed)
             with open(self.session.rbi_path, "rb") as file_data:
+                user_info = self.get_user_info()
+                
                 rib_response = self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/modifier-document-rib"
                     f"?idDocument={self.document_id}",
@@ -125,10 +127,10 @@ class CaseSubmissionFlow:
                             "titulaire": self.session.owner_name,
                             "bic": self.session.ibc,
                             "iban": self.session.iban,
-                            "adresse": self.session.user_info.get("adresse", ""),
-                            "codePostal": self.session.user_info.get("codePostal", ""),
+                            "adresse": user_info.get("adresse", ""),
+                            "codePostal": user_info.get("codePostal", ""),
                             "codePays": "FR",
-                            "ville": self.session.user_info.get("ville", "")
+                            "ville": user_info.get("ville", "")
                         },
                     )
                     print("--- RIB updated.")
@@ -219,3 +221,9 @@ class CaseSubmissionFlow:
 
         print("Workflow completed.")
         return True
+
+    def get_user_info(self) -> dict:
+        """Fetch user information."""
+        if not self.session.user_info:
+            self.session.user_info = self.session.get_user_info()
+        return self.session.user_info
