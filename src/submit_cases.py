@@ -57,9 +57,10 @@ class SubmitCases:
                     try:
                         recap_url = f"https://ciclade.caissedesdepots.fr/ciclade-service/api/telecharger-recapitulatif-soumission/{case.case_id}"
                         recap_file = self.session.download_file(recap_url, RECAP_FOLDER)
-                        self.notary.upload_file(recap_file, folder_id)
-                        self.notary.move_folder(folder_id, "2.3" )
-                        print("--> SUCCESSFUL <--")
+                        if recap_file:
+                            self.notary.upload_file(recap_file, folder_id)
+                            self.notary.move_folder(folder_id, "2.3" )
+                            print("--> SUCCESSFUL <--")
                     except:
                         print("--> ERROR <--")
                 elif not case.status:

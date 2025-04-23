@@ -1,3 +1,4 @@
+import time
 import requests
 
 from .ciclade_api_session import CicladeApiSession
@@ -59,7 +60,7 @@ class CaseSubmissionFlow:
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-demande",
                     json=payload,
                 )
-                print(f"[{response.status_code}] ",end="\r")
+                print(f"[{response.status_code}] ", end="\r")
                 if response.status_code == 201:
                     self.case_id = response.json()["other"]["idDemande"]
                     print(f"--- Case created with ID {self.case_id}.")
@@ -72,14 +73,16 @@ class CaseSubmissionFlow:
                 elif response.status_code == 400:
                     print("--- Invalid CAPTCHA. Retrying...")
                     self.session.refresh_captcha()
+                elif response.status_code == 500:
+                    self.session.refresh_captcha()
                 elif response.status_code == 404:
                     print("--- No results found. Cannot create case.")
                     self.status = False
                     return False
                 else:
-                    print(f"Unexpected error: {response.status_code}")
-                    self.status = False
-                    return False
+                    raise requests.RequestException(
+                        f"Unexpected status code: {response.status_code}"
+                    )
 
             except requests.RequestException as e:
                 print(f"!!! Request error while creating case: {e}")
@@ -95,54 +98,56 @@ class CaseSubmissionFlow:
             print("!!! Cannot submit request. No case ID.")
             return False
 
-        self.get_document_id()
-
         try:
             # Example: Step 2 submission
-            self.session.post(
-                "https://ciclade.caissedesdepots.fr/ciclade-service/api/poursuivre-etape1",
-                json={
-                    "idDemande": self.case_id,
-                    "intituleDemande": self.case_full_name,
-                    "codePosDemandeur": "NOTAIRE",
-                },
-            )
-
+            try:
+                self.get_document_id()
+            except:
+                return False
             # RIB Document Upload (if needed)
             with open(self.session.rbi_path, "rb") as file_data:
                 user_info = self.get_user_info()
-                
+
                 rib_response = self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/modifier-document-rib"
                     f"?idDocument={self.document_id}",
                     files={"file": file_data},
                 )
-                if rib_response.status_code == 201:
-                    # Save bank details
-                    self.session.put(
-                        "https://ciclade.caissedesdepots.fr/ciclade-service/api/infos-bancaires-enregistrer/",
-                        json={
-                            "idDocument": self.document_id,
-                            "codePaysBanque": "FR",
-                            "titulaire": self.session.owner_name,
-                            "bic": self.session.ibc,
-                            "iban": self.session.iban,
-                            "adresse": user_info.get("adresse", ""),
-                            "codePostal": user_info.get("codePostal", ""),
-                            "codePays": "FR",
-                            "ville": user_info.get("ville", "")
-                        },
-                    )
-                    print("--- RIB updated.")
-                    return True
-                else:
-                    print(f"!!! Error uploading RIB.")
-                    return False
-        except (IOError, requests.RequestException) as e:
+            time.sleep(1)  # Wait for the upload to complete
+            if rib_response.status_code == 201:
+                # Save bank details
+                self.session.put(
+                    "https://ciclade.caissedesdepots.fr/ciclade-service/api/infos-bancaires-enregistrer/",
+                    json={
+                        "idDocument": self.document_id,
+                        "codePaysBanque": "FR",
+                        "titulaire": self.session.owner_name,
+                        "bic": self.session.ibc,
+                        "iban": self.session.iban,
+                        "adresse": user_info.get("adresse", ""),
+                        "codePostal": user_info.get("codePostal", ""),
+                        "codePays": "FR",
+                        "ville": user_info.get("ville", ""),
+                    },
+                )
+                time.sleep(1)
+                self.session.post(
+                    "https://ciclade.caissedesdepots.fr/ciclade-service/api/poursuivre-etape1",
+                    json={
+                        "idDemande": self.case_id,
+                        "intituleDemande": self.case_full_name,
+                        "codePosDemandeur": "NOTAIRE",
+                    },
+                )
+                time.sleep(1)
+                print("--- RIB updated.")
+                return True
+            else:
+                print(f"!!! Error uploading RIB.")
+                return False
+        except Exception as e:
             print(f"!!! Error in step 2: {e}")
             return False
-
-        return True
 
     def supporting_documents(self):
         """Step 3: Upload supporting docs."""
@@ -154,27 +159,29 @@ class CaseSubmissionFlow:
         print("--- Uploading documents.")
         try:
             # Death certificate
-            with open(self.payload["death_certificate"], "rb") as file_data:
+            with open(self.payload["death_certificate"], "rb") as file_data1:
                 self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
                     f"?fileFamille=DOCUMENT_JUSTIFICATIF_DE_DECES&idDemande={self.case_id}",
-                    files={"file": file_data},
+                    files={"file": file_data1},
                 )
-
+            time.sleep(1)
             # Mandat
-            with open(self.payload["mandat"], "rb") as file_data:
+            with open(self.payload["mandat"], "rb") as file_data2:
                 self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
                     f"?fileFamille=MANDAT&idDemande={self.case_id}",
-                    files={"file": file_data},
+                    files={"file": file_data2},
                 )
-
+            time.sleep(1)
             # Confirm step 2
-            self.session.put(
+            response = self.session.put(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/demande/{self.case_id}/validation-etape2",
-                json={"idDemande": self.case_id, "topInfosDocAdditionnel": False},
+                json={"idDemande": self.case_id, "topInfosDocAdditionnel": "false"},
             )
-            print("--- Documents uploaded.")
+            print(f"--- Documents uploaded.")
+            if response.status_code != 200:
+                return False
             return True
         except (IOError, requests.RequestException) as e:
             print(f"!!! Error uploading documents: {e}")
@@ -207,6 +214,8 @@ class CaseSubmissionFlow:
                 return False
 
         if not self.my_request():
+            if self.case_id:
+                return True
             print("!!! Step 2 failed.")
             return False
 
