@@ -1,5 +1,7 @@
-import time
+import random
 import requests
+
+from .utils import countdown
 
 from .ciclade_api_session import CicladeApiSession
 
@@ -44,7 +46,7 @@ class CaseSubmissionFlow:
         """Step 1: Create a new case if none exists."""
         print("Step 1:")
 
-        for _ in range(10):  # Retry up to 5 times for invalid CAPTCHA
+        for _ in range(15):  # Retry up to 5 times for invalid CAPTCHA
             payload = {
                 "radioDeces": "true",
                 "dateDeces": self.payload["dod"],
@@ -53,13 +55,14 @@ class CaseSubmissionFlow:
                 "prenom": self.payload["fname"],
                 "dateNaissance": self.payload["dob"],
                 "codeNationalite": "FRA",
-                "validationCaptcha": self.session.get_captcha(),
+                "validationCaptcha": self.session.refresh_captcha(),
             }
             try:
                 response = self.session.post(
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-demande",
                     json=payload,
                 )
+                countdown(random.randint(1, 5))
                 print(f"[{response.status_code}] ", end="\r")
                 if response.status_code == 201:
                     self.case_id = response.json()["other"]["idDemande"]
@@ -89,7 +92,7 @@ class CaseSubmissionFlow:
                 return False
 
         print("!!! Failed to create case after multiple attempts.")
-        return False
+        raise
 
     def my_request(self):
         """Step 2: Submit initial data and RIB info."""
@@ -113,7 +116,7 @@ class CaseSubmissionFlow:
                     f"?idDocument={self.document_id}",
                     files={"file": file_data},
                 )
-            time.sleep(1)  # Wait for the upload to complete
+            countdown(random.randint(50, 60))  # Wait for the upload to complete
             if rib_response.status_code == 201:
                 # Save bank details
                 self.session.put(
@@ -130,7 +133,7 @@ class CaseSubmissionFlow:
                         "ville": user_info.get("ville", ""),
                     },
                 )
-                time.sleep(1)
+                countdown(random.randint(3, 4))
                 self.session.post(
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/poursuivre-etape1",
                     json={
@@ -139,7 +142,6 @@ class CaseSubmissionFlow:
                         "codePosDemandeur": "NOTAIRE",
                     },
                 )
-                time.sleep(1)
                 print("--- RIB updated.")
                 return True
             else:
@@ -159,13 +161,14 @@ class CaseSubmissionFlow:
         print("--- Uploading documents.")
         try:
             # Death certificate
+            countdown(random.randint(40, 50))
             with open(self.payload["death_certificate"], "rb") as file_data1:
                 self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
                     f"?fileFamille=DOCUMENT_JUSTIFICATIF_DE_DECES&idDemande={self.case_id}",
                     files={"file": file_data1},
                 )
-            time.sleep(1)
+            countdown(random.randint(40,50))
             # Mandat
             with open(self.payload["mandat"], "rb") as file_data2:
                 self.session.post(
@@ -173,7 +176,7 @@ class CaseSubmissionFlow:
                     f"?fileFamille=MANDAT&idDemande={self.case_id}",
                     files={"file": file_data2},
                 )
-            time.sleep(1)
+            countdown(random.randint(10,20))
             # Confirm step 2
             response = self.session.put(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/demande/{self.case_id}/validation-etape2",
@@ -192,6 +195,7 @@ class CaseSubmissionFlow:
         print("Step 3:")
         print("--- Final submission.")
         try:
+            countdown(random.randint(50, 60))
             response = self.session.post(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/soumettre-demande/{self.case_id}"
             )

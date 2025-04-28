@@ -1,5 +1,4 @@
 from src.ciclade_api_session import CicladeApiSession
-from src.print_loger import PrintLogger
 from src.submit_cases import SubmitCases
 from src.utils import *
 from src.constants import *
@@ -60,19 +59,21 @@ def main():
             print("\nSelect an option:")
             print("1. Submit All Cases")
             print("2. Upload Payment Files")
+            print("3. Exit")
             option = input("\nEnter your choice: ").strip()
-            if option in ["1","2"]:
+            if option in ["1","2","3"]:
                 break
             else:
                 print("Invalid choice! Please select a valid option.")
                 
-        sys.stdout = PrintLogger()
         if option == "1":
             automation = SubmitCases(session)  # Create an instance of SubmitCases with user_data
             automation.start_process()  # Start the automation process
         elif option == "2":
             automation = UploadFiles(session)  # Create an instance of SubmitCases with user_data
             automation.start_process()  # Start the automation process
+        elif option == "3":
+            exit()
     else:
         print("Try Again Later!!")
 
@@ -85,8 +86,11 @@ if __name__ == "__main__":
     if not os.path.exists(DOCUMENT_FOLDER):
         os.makedirs(DOCUMENT_FOLDER)
         
-    try:
-        main()
-    except Exception as e:
-        print(e)
-    input("Press Enter To Exit:")
+    while True:
+        try:
+            main()
+            input("Press Enter To Continue:")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            input("Press Enter To Exit:")
+            break

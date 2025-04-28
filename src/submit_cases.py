@@ -1,3 +1,4 @@
+import random
 from .case_submission import CaseSubmissionFlow
 from .ciclade_api_session import CicladeApiSession
 from .notary_account import NotaryAccount
@@ -23,6 +24,7 @@ class SubmitCases:
                     except Exception as e:
                         print(f"Error : {e}")
                     print("------------------------------------------------")
+                    countdown(random.randint(200, 250))
 
             print("Task Completed Successfully")
         except Exception as e:
@@ -55,6 +57,7 @@ class SubmitCases:
                 process_status = case.execute_workflow()
                 if process_status or case.status:
                     try:
+                        
                         recap_url = f"https://ciclade.caissedesdepots.fr/ciclade-service/api/telecharger-recapitulatif-soumission/{case.case_id}"
                         recap_file = self.session.download_file(recap_url, RECAP_FOLDER)
                         if recap_file:

@@ -143,7 +143,13 @@ def ask_for_new_data(user_data):
         user_data["RBI Pdf"] = get_valid_file_path()
     return user_data    
     
-    
+def countdown(seconds: int):
+    for i in range(seconds, 0, -1):
+        sys.stdout.write(f"\r---⏳ countdown : {i}")
+        sys.stdout.flush()
+        time.sleep(1)
+        
+        
 # Function to load the saved derived key if it exists
 def load_derived_key():
     try:
