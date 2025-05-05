@@ -24,7 +24,6 @@ class SubmitCases:
                     except Exception as e:
                         print(f"Error : {e}")
                     print("------------------------------------------------")
-                    countdown(random.randint(200, 250))
 
             print("Task Completed Successfully")
         except Exception as e:
@@ -66,6 +65,7 @@ class SubmitCases:
                             print("--> SUCCESSFUL <--")
                     except:
                         print("--> ERROR <--")
+                    countdown(random.randint(200, 250))
                 elif not case.status:
                     self.notary.move_folder(folder_id, "2.5")
                     print("--> NEGATIVE <--")
