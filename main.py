@@ -57,7 +57,7 @@ def main():
     if session and session.user_info:
         while True:
             print("\nSelect an option:")
-            print("1. Submit All Cases")
+            print("1. Submit All Cases") 
             print("2. Upload Payment Files")
             print("3. Exit")
             option = input("\nEnter your choice: ").strip()

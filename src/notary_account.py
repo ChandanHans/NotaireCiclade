@@ -14,11 +14,22 @@ from .utils import *
 
 class NotaryAccount:
     def __init__(self, email) -> None:
+        # Remove proxy settings to avoid connection issues
+        self._clear_proxy_settings()
+        
         self.email: str = email
         self.creds: service_account.Credentials = self.get_credentials()
         self.gc = gspread.authorize(self.creds)
         self.drive_service = self.get_drive_service()
         self.folders = self.get_folder_id()
+    
+    def _clear_proxy_settings(self):
+        """Remove proxy environment variables that may interfere with Google API connections"""
+        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
+        for var in proxy_vars:
+            if var in os.environ:
+                print(f"Removing proxy setting: {var}={os.environ[var]}")
+                del os.environ[var]
         
     def get_credentials(self):
         scopes = ["https://www.googleapis.com/auth/drive"]

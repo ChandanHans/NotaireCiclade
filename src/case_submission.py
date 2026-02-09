@@ -22,9 +22,12 @@ class CaseSubmissionFlow:
                 "https://ciclade.caissedesdepots.fr/ciclade-service/api/liste-demandes"
             )
             if response.status_code == 200:
-                for case in response.json().get("other", []):
+                response_json = response.json()
+
+                for case in response_json.get("other", []):
                     if (
-                        case.get("intituleDemande") == self.case_full_name
+                        case.get("intituleDemande").lower().replace(" ", "")
+                        == self.case_full_name.lower().replace(" ", "")
                         and case.get("statut") != "SUPPRIMEE"
                     ):
                         return case.get("idDemande")
@@ -119,7 +122,7 @@ class CaseSubmissionFlow:
             countdown(random.randint(50, 60))  # Wait for the upload to complete
             if rib_response.status_code == 201:
                 # Save bank details
-                self.session.put(
+                response_1 = self.session.put(
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/infos-bancaires-enregistrer/",
                     json={
                         "idDocument": self.document_id,
@@ -134,7 +137,7 @@ class CaseSubmissionFlow:
                     },
                 )
                 countdown(random.randint(3, 4))
-                self.session.post(
+                response_2 = self.session.post(
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/poursuivre-etape1",
                     json={
                         "idDemande": self.case_id,
@@ -163,27 +166,27 @@ class CaseSubmissionFlow:
             # Death certificate
             countdown(random.randint(40, 50))
             with open(self.payload["death_certificate"], "rb") as file_data1:
-                self.session.post(
+                response_3 = self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
                     f"?fileFamille=DOCUMENT_JUSTIFICATIF_DE_DECES&idDemande={self.case_id}",
                     files={"file": file_data1},
                 )
-            countdown(random.randint(40,50))
+            countdown(random.randint(40, 50))
             # Mandat
             with open(self.payload["mandat"], "rb") as file_data2:
-                self.session.post(
+                response_4 = self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
                     f"?fileFamille=MANDAT&idDemande={self.case_id}",
                     files={"file": file_data2},
                 )
-            countdown(random.randint(10,20))
+            countdown(random.randint(10, 20))
             # Confirm step 2
-            response = self.session.put(
+            response_5 = self.session.put(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/demande/{self.case_id}/validation-etape2",
                 json={"idDemande": self.case_id, "topInfosDocAdditionnel": "false"},
             )
             print(f"--- Documents uploaded.")
-            if response.status_code != 200:
+            if response_5.status_code != 200:
                 return False
             return True
         except (IOError, requests.RequestException) as e:
@@ -196,14 +199,14 @@ class CaseSubmissionFlow:
         print("--- Final submission.")
         try:
             countdown(random.randint(50, 60))
-            response = self.session.post(
+            response_6 = self.session.post(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/soumettre-demande/{self.case_id}"
             )
-            if response.status_code == 200:
+            if response_6.status_code == 200:
                 print("--- Submission finalized.")
                 return True
             else:
-                print(f"!!! Failed finalization. Status code: {response.status_code}")
+                print(f"!!! Failed finalization. Status code: {response_6.status_code}")
                 return False
         except requests.RequestException as e:
             print(f"!!! Error finalizing submission: {e}")
