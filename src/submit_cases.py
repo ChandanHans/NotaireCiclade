@@ -17,14 +17,13 @@ class SubmitCases:
             all_folders = self.notary.get_folders("2.2")
             if all_folders:
                 for index, folder in enumerate(all_folders):
-                    if folder["id"] == "1l9gc9lxgjYnfrGqUw7SS5Wz5qDcnNbzA":
-                        print("------------------------------------------------")
-                        print(f"Processing folder {index + 1}/{len(all_folders)}: {folder['name']}")
-                        try:
-                            self.process_folder(folder)
-                        except Exception as e:
-                            print(f"Error : {e}")
-                        print("------------------------------------------------")
+                    print("------------------------------------------------")
+                    print(f"Processing folder {index + 1}/{len(all_folders)}: {folder['name']}")
+                    try:
+                        self.process_folder(folder)
+                    except Exception as e:
+                        print(f"Error : {e}")
+                    print("------------------------------------------------")
 
             print("Task Completed Successfully")
         except Exception as e:
