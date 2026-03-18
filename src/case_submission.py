@@ -171,28 +171,51 @@ class CaseSubmissionFlow:
             # Death certificate
             countdown(random.randint(40, 50))
             with open(self.payload["death_certificate"], "rb") as file_data1:
-                self.session.post(
+                death_response = self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
                     f"?fileFamille=DOCUMENT_JUSTIFICATIF_DE_DECES&idDemande={self.case_id}",
                     files={"file": file_data1},
                 )
+            if death_response.status_code not in (200, 201):
+                print(
+                    f"!!! Death certificate upload failed. Status code: {death_response.status_code}"
+                )
+                try:
+                    print(f"    Response body: {death_response.json()}")
+                except Exception:
+                    print(f"    Response body (raw): {death_response.text}")
+                return False
             countdown(random.randint(40,50))
             # Mandat
             with open(self.payload["mandat"], "rb") as file_data2:
-                self.session.post(
+                mandat_response = self.session.post(
                     f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
                     f"?fileFamille=MANDAT&idDemande={self.case_id}",
                     files={"file": file_data2},
                 )
+            if mandat_response.status_code not in (200, 201):
+                print(f"!!! Mandat upload failed. Status code: {mandat_response.status_code}")
+                try:
+                    print(f"    Response body: {mandat_response.json()}")
+                except Exception:
+                    print(f"    Response body (raw): {mandat_response.text}")
+                return False
             countdown(random.randint(10,20))
             # Confirm step 2
             response = self.session.put(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/demande/{self.case_id}/validation-etape2",
                 json={"idDemande": self.case_id, "topInfosDocAdditionnel": "false"},
             )
-            print(f"--- Documents uploaded.")
             if response.status_code != 200:
+                print(
+                    f"!!! Step 3 validation failed. Status code: {response.status_code}"
+                )
+                try:
+                    print(f"    Response body: {response.json()}")
+                except Exception:
+                    print(f"    Response body (raw): {response.text}")
                 return False
+            print("--- Documents uploaded.")
             return True
         except (IOError, requests.RequestException) as e:
             print(f"!!! Error uploading documents: {e}")
