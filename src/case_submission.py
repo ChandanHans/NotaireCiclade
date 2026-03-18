@@ -162,6 +162,7 @@ class CaseSubmissionFlow:
     def supporting_documents(self):
         """Step 3: Upload supporting docs."""
         print("Step 3:")
+        print("--- Step3 build marker: STEP3_DEBUG_20260318_A")
         if not self.case_id:
             print("!!! No case ID. Cannot upload documents.")
             return False
@@ -254,7 +255,9 @@ class CaseSubmissionFlow:
             print("!!! Step 2 failed.")
             return False
 
-        if not self.supporting_documents():
+        step3_ok = self.supporting_documents()
+        print(f"--- Step 3 returned: {step3_ok}")
+        if not step3_ok:
             print("!!! Step 3 failed.")
             return False
 
