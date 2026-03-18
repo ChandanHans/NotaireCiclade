@@ -83,6 +83,14 @@ class CaseSubmissionFlow:
                     self.status = False
                     return False
                 else:
+                    print(f"!!! Unexpected status code: {response.status_code}")
+                    print(f"    URL: {response.url}")
+                    print(f"    Headers sent: {dict(self.session.headers)}")
+                    print(f"    Response headers: {dict(response.headers)}")
+                    try:
+                        print(f"    Response body: {response.json()}")
+                    except Exception:
+                        print(f"    Response body (raw): {response.text}")
                     raise requests.RequestException(
                         f"Unexpected status code: {response.status_code}"
                     )
