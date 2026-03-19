@@ -21,6 +21,7 @@ class CaseSubmissionFlow:
             response = self.session.get(
                 "https://ciclade.caissedesdepots.fr/ciclade-service/api/liste-demandes"
             )
+            print(f"[get_case_id] [{response.status_code}]")
             if response.status_code == 200:
                 for case in response.json().get("other", []):
                     if (
@@ -37,6 +38,7 @@ class CaseSubmissionFlow:
         response = self.session.get(
             f"https://ciclade.caissedesdepots.fr/ciclade-service/api/document-paiement-en-attente/{self.case_id}"
         )
+        print(f"[get_document_id] [{response.status_code}]")
         response_json = response.json()
         result = response_json["other"]
         self.document_id = result["idDocument"]
@@ -63,7 +65,7 @@ class CaseSubmissionFlow:
                     json=payload,
                 )
                 countdown(random.randint(1, 5))
-                print(f"[{response.status_code}] ", end="\r")
+                print(f"[create_case] [{response.status_code}]")
                 if response.status_code == 201:
                     self.case_id = response.json()["other"]["idDemande"]
                     print(f"--- Case created with ID {self.case_id}.")
@@ -87,10 +89,6 @@ class CaseSubmissionFlow:
                     print(f"    URL: {response.url}")
                     print(f"    Headers sent: {dict(self.session.headers)}")
                     print(f"    Response headers: {dict(response.headers)}")
-                    try:
-                        print(f"    Response body: {response.json()}")
-                    except Exception:
-                        print(f"    Response body (raw): {response.text}")
                     raise requests.RequestException(
                         f"Unexpected status code: {response.status_code}"
                     )
@@ -124,10 +122,11 @@ class CaseSubmissionFlow:
                     f"?idDocument={self.document_id}",
                     files={"file": file_data},
                 )
+            print(f"[rib_upload] [{rib_response.status_code}]")
             countdown(random.randint(50, 60))  # Wait for the upload to complete
             if rib_response.status_code == 201:
                 # Save bank details
-                self.session.put(
+                bank_response = self.session.put(
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/infos-bancaires-enregistrer/",
                     json={
                         "idDocument": self.document_id,
@@ -141,8 +140,9 @@ class CaseSubmissionFlow:
                         "ville": user_info.get("ville", ""),
                     },
                 )
+                print(f"[bank_details] [{bank_response.status_code}]")
                 countdown(random.randint(3, 4))
-                self.session.post(
+                etape1_response = self.session.post(
                     "https://ciclade.caissedesdepots.fr/ciclade-service/api/poursuivre-etape1",
                     json={
                         "idDemande": self.case_id,
@@ -150,6 +150,7 @@ class CaseSubmissionFlow:
                         "codePosDemandeur": "NOTAIRE",
                     },
                 )
+                print(f"[poursuivre_etape1] [{etape1_response.status_code}]")
                 print("--- RIB updated.")
                 return True
             else:
@@ -169,52 +170,61 @@ class CaseSubmissionFlow:
 
         print("--- Uploading documents.")
         try:
+            # Check already-submitted documents
+            famille_response = self.session.get(
+                f"https://ciclade.caissedesdepots.fr/ciclade-service/api/famille-document/{self.case_id}"
+            )
+            print(f"[famille_document] [{famille_response.status_code}]")
+            already_submitted = set()
+            if famille_response.status_code == 200:
+                for doc in famille_response.json().get("other", {}).get("lstDocumentBean", []):
+                    if doc.get("idDocument") is not None:
+                        already_submitted.add(doc.get("famille"))
+
             # Death certificate
-            countdown(random.randint(40, 50))
-            with open(self.payload["death_certificate"], "rb") as file_data1:
-                death_response = self.session.post(
-                    f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
-                    f"?fileFamille=DOCUMENT_JUSTIFICATIF_DE_DECES&idDemande={self.case_id}",
-                    files={"file": file_data1},
-                )
-            if death_response.status_code not in (200, 201):
-                print(
-                    f"!!! Death certificate upload failed. Status code: {death_response.status_code}"
-                )
-                try:
-                    print(f"    Response body: {death_response.json()}")
-                except Exception:
-                    print(f"    Response body (raw): {death_response.text}")
-                return False
-            countdown(random.randint(40,50))
+            if "DOCUMENT_JUSTIFICATIF_DE_DECES" in already_submitted:
+                print("--- Death certificate already submitted, skipping.")
+            else:
+                countdown(random.randint(40, 50))
+                with open(self.payload["death_certificate"], "rb") as file_data1:
+                    death_response = self.session.post(
+                        f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
+                        f"?fileFamille=DOCUMENT_JUSTIFICATIF_DE_DECES&idDemande={self.case_id}",
+                        files={"file": file_data1},
+                    )
+                print(f"[death_certificate] [{death_response.status_code}]")
+                if death_response.status_code not in (200, 201):
+                    print(
+                        f"!!! Death certificate upload failed. Status code: {death_response.status_code}"
+                    )
+                    return False
+
             # Mandat
-            with open(self.payload["mandat"], "rb") as file_data2:
-                mandat_response = self.session.post(
-                    f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
-                    f"?fileFamille=MANDAT&idDemande={self.case_id}",
-                    files={"file": file_data2},
-                )
-            if mandat_response.status_code not in (200, 201):
-                print(f"!!! Mandat upload failed. Status code: {mandat_response.status_code}")
-                try:
-                    print(f"    Response body: {mandat_response.json()}")
-                except Exception:
-                    print(f"    Response body (raw): {mandat_response.text}")
-                return False
+            if "MANDAT" in already_submitted:
+                print("--- Mandat already submitted, skipping.")
+            else:
+                countdown(random.randint(40, 50))
+                with open(self.payload["mandat"], "rb") as file_data2:
+                    mandat_response = self.session.post(
+                        f"https://ciclade.caissedesdepots.fr/ciclade-service/api/creer-document"
+                        f"?fileFamille=MANDAT&idDemande={self.case_id}",
+                        files={"file": file_data2},
+                    )
+                print(f"[mandat] [{mandat_response.status_code}]")
+                if mandat_response.status_code not in (200, 201):
+                    print(f"!!! Mandat upload failed. Status code: {mandat_response.status_code}")
+                    return False
             countdown(random.randint(10,20))
             # Confirm step 2
             response = self.session.put(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/demande/{self.case_id}/validation-etape2",
                 json={"idDemande": self.case_id, "topInfosDocAdditionnel": "false"},
             )
+            print(f"[validation_etape2] [{response.status_code}]")
             if response.status_code != 200:
                 print(
                     f"!!! Step 3 validation failed. Status code: {response.status_code}"
                 )
-                try:
-                    print(f"    Response body: {response.json()}")
-                except Exception:
-                    print(f"    Response body (raw): {response.text}")
                 return False
             print("--- Documents uploaded.")
             return True
@@ -231,6 +241,7 @@ class CaseSubmissionFlow:
             response = self.session.post(
                 f"https://ciclade.caissedesdepots.fr/ciclade-service/api/soumettre-demande/{self.case_id}"
             )
+            print(f"[finalize_submission] [{response.status_code}]")
             if response.status_code == 200:
                 print("--- Submission finalized.")
                 return True
