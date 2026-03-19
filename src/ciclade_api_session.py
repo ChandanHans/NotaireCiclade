@@ -1,10 +1,16 @@
 import logging
+import time
 import requests
 import json
 import os
 from openai import OpenAI
 
 logger = logging.getLogger(__name__)
+
+
+class ReauthLimitReached(Exception):
+    """Raised when the re-authentication limit (3 per hour) is exceeded."""
+    pass
 
 class CicladeApiSession(requests.Session):
     SESSION_FILE = "session.json"
@@ -26,6 +32,7 @@ class CicladeApiSession(requests.Session):
         self.token = None
         self.captcha = None
         self.user_info = None
+        self._reauth_timestamps = []  # Tracks timestamps of re-auth calls
         self.headers.update({
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -160,6 +167,23 @@ class CicladeApiSession(requests.Session):
         if not self.captcha:
             return self.refresh_captcha()
         return self.captcha
+
+    def refresh_session(self):
+        """Re-authenticate to recover from an expired session, keeping existing cookies (MFA).
+        Limited to 3 re-auths per hour.
+        """
+        now = time.time()
+        # Drop timestamps older than 1 hour
+        self._reauth_timestamps = [t for t in self._reauth_timestamps if now - t < 3600]
+        if len(self._reauth_timestamps) >= 5:
+            raise ReauthLimitReached(
+                f"Re-authentication limit reached (5 per hour). "
+                f"Next re-auth available in {int(3600 - (time.time() - self._reauth_timestamps[0]))} seconds."
+            )
+        print("Session expired (403). Re-authenticating...")
+        self._reauth_timestamps.append(now)
+        self.token = None
+        return self.authenticate()
 
     def download_file(self, download_url, target_folder):
         response = self.get(download_url)

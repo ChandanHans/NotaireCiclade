@@ -1,4 +1,4 @@
-from src.ciclade_api_session import CicladeApiSession
+from src.ciclade_api_session import CicladeApiSession, ReauthLimitReached
 from src.submit_cases import SubmitCases
 from src.utils import *
 from src.constants import *
@@ -90,6 +90,11 @@ if __name__ == "__main__":
         try:
             main()
             input("Press Enter To Continue:")
+        except ReauthLimitReached as e:
+            print(f"\n!!! Session re-authentication limit reached. Exiting.")
+            print(f"    {e}")
+            input("Press Enter To Exit:")
+            break
         except Exception as e:
             print(f"An error occurred: {e}")
             input("Press Enter To Exit:")

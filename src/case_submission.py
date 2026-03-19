@@ -2,8 +2,7 @@ import random
 import requests
 
 from .utils import countdown
-
-from .ciclade_api_session import CicladeApiSession
+from .ciclade_api_session import CicladeApiSession, ReauthLimitReached
 
 
 class CaseSubmissionFlow:
@@ -78,6 +77,9 @@ class CaseSubmissionFlow:
                 elif response.status_code == 400:
                     print("--- Invalid CAPTCHA. Retrying...")
                     self.session.refresh_captcha()
+                elif response.status_code == 403:
+                    print("--- Session expired (403). Refreshing session and retrying...")
+                    self.session.refresh_session()  # raises ReauthLimitReached if limit hit
                 elif response.status_code == 500:
                     self.session.refresh_captcha()
                 elif response.status_code == 404:
