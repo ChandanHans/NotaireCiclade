@@ -13,7 +13,7 @@ class CaseSubmissionFlow:
         self.case_full_name = f"{payload['lname']} {payload['fname']}"
         self.case_id = self.get_case_id()
         self.document_id = None  # Will be set if needed
-        self.status = 0
+        self.status = "PENDING"
 
     def get_case_id(self):
         """Fetch an existing open case if it matches."""
@@ -45,10 +45,9 @@ class CaseSubmissionFlow:
         return self.document_id
 
     def create_case(self):
-        """Step 1: Create a new case if none exists."""
+        """Step 1: Create a new case or identify an existing one."""
         print("Step 1:")
-
-        for _ in range(15):  # Retry up to 5 times for invalid CAPTCHA
+        for _ in range(15):
             payload = {
                 "radioDeces": "true",
                 "dateDeces": self.payload["dod"],
@@ -68,13 +67,14 @@ class CaseSubmissionFlow:
                 print(f"[create_case] [{response.status_code}]")
                 if response.status_code == 201:
                     self.case_id = response.json()["other"]["idDemande"]
+                    self.status = "SUCCESS"
                     print(f"--- Case created with ID {self.case_id}.")
-                    self.status = True
-                    return True
+                    return
                 elif response.status_code == 412:
-                    print("--- This case was already submitted.")
-                    self.status = True
-                    return False
+                    # case_id already fetched in __init__ via get_case_id()
+                    self.status = "EXISTED"
+                    print(f"--- Case already exists with ID {self.case_id}.")
+                    return
                 elif response.status_code == 400:
                     print("--- Invalid CAPTCHA. Retrying...")
                     self.session.refresh_captcha()
@@ -82,8 +82,8 @@ class CaseSubmissionFlow:
                     self.session.refresh_captcha()
                 elif response.status_code == 404:
                     print("--- No results found. Cannot create case.")
-                    self.status = False
-                    return False
+                    self.status = "NOT_FOUND"
+                    return
                 else:
                     print(f"!!! Unexpected status code: {response.status_code}")
                     print(f"    URL: {response.url}")
@@ -92,13 +92,12 @@ class CaseSubmissionFlow:
                     raise requests.RequestException(
                         f"Unexpected status code: {response.status_code}"
                     )
-
             except requests.RequestException as e:
                 print(f"!!! Request error while creating case: {e}")
-                return False
+                return
 
         print("!!! Failed to create case after multiple attempts.")
-        raise
+        raise RuntimeError("Failed to create case after multiple attempts.")
 
     def my_request(self):
         """Step 2: Submit initial data and RIB info."""
@@ -254,31 +253,37 @@ class CaseSubmissionFlow:
 
     def execute_workflow(self):
         """Execute the entire workflow (all steps)."""
-        if not self.create_case():
-            if self.status:
-                print("--- Using existing case.")
-            else:
-                return False
+        self.create_case()
+
+        if self.status == "NOT_FOUND":
+            return
+
+        if self.status == "PENDING":
+            # Error occurred during case creation
+            return
+
+        if self.status == "EXISTED":
+            print(f"--- Resuming existing case ID {self.case_id}.")
 
         if not self.my_request():
-            if self.case_id:
-                return True
-            print("!!! Step 2 failed.")
-            return False
+            if self.status == "EXISTED":
+                print("--- Step 2 skipped (case already in progress).")
+            else:
+                print("!!! Step 2 failed.")
+                self.status = "PENDING"
+                return
 
-        step3_ok = self.supporting_documents()
-        print(f"--- Step 3 returned: {step3_ok}")
-        if not step3_ok:
+        if not self.supporting_documents():
             print("!!! Step 3 failed.")
-            return False
+            self.status = "PENDING"
+            return
 
-        # Uncomment to finalize automatically:
         if not self.finalize_submission():
             print("!!! Step 4 failed.")
-            return False
+            self.status = "PENDING"
+            return
 
         print("Workflow completed.")
-        return True
 
     def get_user_info(self) -> dict:
         """Fetch user information."""
